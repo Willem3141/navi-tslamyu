@@ -104,9 +104,9 @@ vin_clause_subjective ->
 	(adverbial:* n_clause_subjective vin_clause_bare
 	{%
 		function (data) {
-			let result = data[2];
+			let result = {...data[2]};
 			result['subjective'] = data[1];
-			let advs = result['adverbials'] ? result['adverbials'] : [];
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
 			advs = advs.concat(data[0]);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
@@ -117,10 +117,12 @@ vin_clause_subjective ->
 	| vin_clause_bare n_clause_subjective adverbial:*
 	{%
 		function (data) {
-			let result = data[0];
+			let result = {...data[0]};
 			result['subjective'] = data[1];
-			let advs = result['adverbials'] ? result['adverbials'] : [];
-			result['adverbials'] = advs.concat(data[2]);
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			if (advs.length > 0) {
+				result['adverbials'] = advs.concat(data[2]);
+			}
 			return result;
 		}
 	%})
@@ -163,9 +165,9 @@ vtr_clause_agentive ->
 	(adverbial:* n_clause_agentive vtr_clause_bare
 	{%
 		function (data) {
-			let result = data[2];
+			let result = {...data[2]};
 			result['agentive'] = data[1];
-			let advs = result['adverbials'] ? result['adverbials'] : [];
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
 			advs = advs.concat(data[0]);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
@@ -176,10 +178,12 @@ vtr_clause_agentive ->
 	| vtr_clause_bare n_clause_agentive adverbial:*
 	{%
 		function (data) {
-			let result = data[0];
+			let result = {...data[0]};
 			result['agentive'] = data[1];
-			let advs = result['adverbials'] ? result['adverbials'] : [];
-			result['adverbials'] = advs.concat(data[2]);
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			if (advs.length > 0) {
+				result['adverbials'] = advs.concat(data[2]);
+			}
 			return result;
 		}
 	%})
@@ -191,9 +195,9 @@ vtr_clause_patientive ->
 	(adverbial:* n_clause_patientive vtr_clause_bare
 	{%
 		function (data) {
-			let result = data[2];
+			let result = {...data[2]};
 			result['patientive'] = data[1];
-			let advs = result['adverbials'] ? result['adverbials'] : [];
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
 			advs = advs.concat(data[0]);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
@@ -204,10 +208,12 @@ vtr_clause_patientive ->
 	| vtr_clause_bare n_clause_patientive adverbial:*
 	{%
 		function (data) {
-			let result = data[0];
+			let result = {...data[0]};
 			result['patientive'] = data[1];
-			let advs = result['adverbials'] ? result['adverbials'] : [];
-			result['adverbials'] = advs.concat(data[2]);
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			if (advs.length > 0) {
+				result['adverbials'] = advs.concat(data[2]);
+			}
 			return result;
 		}
 	%})
@@ -218,9 +224,9 @@ vtr_clause_full ->
 	(adverbial:* n_clause_patientive vtr_clause_agentive
 	{%
 		function (data) {
-			let result = data[2];
+			let result = {...data[2]};
 			result['patientive'] = data[1];
-			let advs = result['adverbials'] ? result['adverbials'] : [];
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
 			advs = advs.concat(data[0]);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
@@ -231,9 +237,9 @@ vtr_clause_full ->
 	| vtr_clause_agentive n_clause_patientive adverbial:*
 	{%
 		function (data) {
-			let result = data[0];
+			let result = {...data[0]};
 			result['patientive'] = data[1];
-			let advs = result['adverbials'] ? result['adverbials'] : [];
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
 			advs = advs.concat(data[2]);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
@@ -244,10 +250,10 @@ vtr_clause_full ->
 	| adverbial:* n_clause_agentive adverbial:* n_clause_patientive vtr_clause_bare
 	{%
 		function (data) {
-			let result = data[4];
+			let result = {...data[4]};
 			result['agentive'] = data[1];
 			result['patientive'] = data[3];
-			let advs = result['adverbials'] ? result['adverbials'] : [];
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
 			advs = advs.concat(data[0]).concat(data[2]);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
@@ -258,10 +264,10 @@ vtr_clause_full ->
 	| vtr_clause_bare n_clause_patientive adverbial:* n_clause_agentive adverbial:*
 	{%
 		function (data) {
-			let result = data[0];
+			let result = {...data[0]};
 			result['agentive'] = data[3];
 			result['patientive'] = data[1];
-			let advs = result['adverbials'] ? result['adverbials'] : [];
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
 			advs = advs.concat(data[2]).concat(data[4]);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
