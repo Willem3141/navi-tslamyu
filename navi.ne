@@ -160,7 +160,7 @@ vtr_clause_bare ->
 # transitive verb clause with an agentive
 # (is a bare clause with an agentive added to it)
 vtr_clause_agentive ->
-	(adverbial:* n_clause_agentive vin_clause_bare
+	(adverbial:* n_clause_agentive vtr_clause_bare
 	{%
 		function (data) {
 			let result = data[2];
