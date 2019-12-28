@@ -107,7 +107,7 @@ vin_clause_subjective ->
 			let result = {...data[2]};
 			result['subjective'] = data[1];
 			let advs = result['adverbials'] ? [...result['adverbials']] : [];
-			advs = advs.concat(data[0]);
+			advs = data[0].concat(advs);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
 			}
@@ -120,8 +120,9 @@ vin_clause_subjective ->
 			let result = {...data[0]};
 			result['subjective'] = data[1];
 			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = advs.concat(data[2]);
 			if (advs.length > 0) {
-				result['adverbials'] = advs.concat(data[2]);
+				result['adverbials'] = advs;
 			}
 			return result;
 		}
@@ -147,12 +148,8 @@ vtr_clause_bare ->
 				'verb': data[1]
 			};
 			let advs = [];
-			if (data[0]) {
-				advs = advs.concat(data[0]);
-			}
-			if (data[2]) {
-				advs = advs.concat(data[2]);
-			}
+			advs = advs.concat(data[0]);
+			advs = advs.concat(data[2]);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
 			}
@@ -169,7 +166,7 @@ vtr_clause_agentive ->
 			let result = {...data[2]};
 			result['agentive'] = data[1];
 			let advs = result['adverbials'] ? [...result['adverbials']] : [];
-			advs = advs.concat(data[0]);
+			advs = data[0].concat(advs);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
 			}
@@ -182,8 +179,9 @@ vtr_clause_agentive ->
 			let result = {...data[0]};
 			result['agentive'] = data[1];
 			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = advs.concat(data[2]);
 			if (advs.length > 0) {
-				result['adverbials'] = advs.concat(data[2]);
+				result['adverbials'] = advs;
 			}
 			return result;
 		}
