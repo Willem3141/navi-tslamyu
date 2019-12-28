@@ -130,9 +130,10 @@ vin_clause_subjective ->
 
 ### TRANSIIVE VERB CLAUSES ###
 
+# a vtr_clause_bare cannot be a vtr_clause, because otherwise such a clause
+# would be ambiguous (vin_clause_bare vs vtr_clause_bare)
 vtr_clause ->
-	vtr_clause_bare {% id %}
-	| vtr_clause_agentive {% id %}
+	vtr_clause_agentive {% id %}
 	| vtr_clause_patientive {% id %}
 	| vtr_clause_full {% id %}
 
@@ -198,7 +199,7 @@ vtr_clause_patientive ->
 			let result = {...data[2]};
 			result['patientive'] = data[1];
 			let advs = result['adverbials'] ? [...result['adverbials']] : [];
-			advs = advs.concat(data[0]);
+			advs = data[0].concat(advs);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
 			}
@@ -211,8 +212,9 @@ vtr_clause_patientive ->
 			let result = {...data[0]};
 			result['patientive'] = data[1];
 			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = advs.concat(data[2]);
 			if (advs.length > 0) {
-				result['adverbials'] = advs.concat(data[2]);
+				result['adverbials'] = advs;
 			}
 			return result;
 		}
