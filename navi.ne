@@ -28,27 +28,37 @@
 	
 	let processNounClause = function (data) {
 		let result = {
-			'noun' : data[2]
+			'noun' : data[3]
 		};
 		let adjs = [];
-		if (data[1]) {
-			adjs = adjs.concat([data[1]]);
+		if (data[2]) {
+			adjs = adjs.concat([data[2]]);
 		}
-		if (data[3]) {
-			adjs = adjs.concat([data[3]]);
+		if (data[4]) {
+			adjs = adjs.concat([data[4]]);
 		}
 		if (adjs.length > 0) {
 			result['adjectives'] = adjs;
 		}
 		let subs = [];
-		if (data[0]) {
-			subs = subs.concat([data[0][0]]);
+		if (data[1]) {
+			subs = subs.concat([data[1][0]]);
 		}
-		if (data[4]) {
-			subs = subs.concat([data[4][1]]);
+		if (data[5]) {
+			subs = subs.concat([data[5][1]]);
 		}
 		if (subs.length > 0) {
 			result['subclauses'] = subs;
+		}
+		let possessives = [];
+		if (data[0]) {
+			possessives = possessives.concat([data[0][0]]);
+		}
+		if (data[6]) {
+			possessives = possessives.concat([data[6][0]]);
+		}
+		if (possessives.length > 0) {
+			result['possessives'] = possessives;
 		}
 		return result;
 	};
@@ -280,34 +290,52 @@ vtr_clause_full ->
 ### NOUN CLAUSES ###
 
 n_clause_subjective ->
+	(n_clause_genitive):?
 	(verb_clause %a_left):?
 	%adj_left:? %n_subjective %adj_right:?
-	(%a_right verb_clause):? {% processNounClause %}
+	(%a_right verb_clause):?
+	(n_clause_genitive):?
+	{% processNounClause %}
 
 n_clause_agentive ->
+	(n_clause_genitive):?
 	(verb_clause %a_left):?
 	%adj_left:? %n_agentive %adj_right:?
-	(%a_right verb_clause):? {% processNounClause %}
+	(%a_right verb_clause):?
+	(n_clause_genitive):?
+	{% processNounClause %}
 
 n_clause_patientive ->
+	(n_clause_genitive):?
 	(verb_clause %a_left):?
 	%adj_left:? %n_patientive %adj_right:?
-	(%a_right verb_clause):? {% processNounClause %}
+	(%a_right verb_clause):?
+	(n_clause_genitive):?
+	{% processNounClause %}
 
 n_clause_dative ->
+	(n_clause_genitive):?
 	(verb_clause %a_left):?
 	%adj_left:? %n_dative %adj_right:?
-	(%a_right verb_clause):? {% processNounClause %}
+	(%a_right verb_clause):?
+	(n_clause_genitive):?
+	{% processNounClause %}
 
 n_clause_genitive ->
+	(n_clause_genitive):?
 	(verb_clause %a_left):?
 	%adj_left:? %n_genitive %adj_right:?
-	(%a_right verb_clause):? {% processNounClause %}
+	(%a_right verb_clause):?
+	(n_clause_genitive):?
+	{% processNounClause %}
 
 n_clause_topical ->
+	(n_clause_genitive):?
 	(verb_clause %a_left):?
 	%adj_left:? %n_topical %adj_right:?
-	(%a_right verb_clause):? {% processNounClause %}
+	(%a_right verb_clause):?
+	(n_clause_genitive):?
+	{% processNounClause %}
 
 adverbial -> %adv {% id %}
 

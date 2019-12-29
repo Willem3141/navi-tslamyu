@@ -147,6 +147,14 @@ function nounClauseToTree(clause) {
 			result['children'].push(subclause);
 		}
 	}
+	if (clause['possessives']) {
+		for (let i = 0; i < clause['possessives'].length; i++) {
+			let poss = clause['possessives'][i];
+			let possessive = nounClauseToTree(poss);
+			possessive['role'] = 'possessive';
+			result['children'].push(possessive);
+		}
+	}
 	return result;
 }
 
