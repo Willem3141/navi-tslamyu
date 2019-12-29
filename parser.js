@@ -26,7 +26,11 @@ for (let i = 0; i < responses.length; i++) {
 	tokens.push(token);
 }
 
-console.log(tokens);
+console.log('\x1b[1m\x1b[34mInput:\x1b[0m');
+for (let i = 0; i < tokens.length; i++) {
+	let token = tokens[i];
+	console.log('\x1b[1m' + token['value'] + '\x1b[0m (' + token['types'].join(', ') + ')');
+}
 
 /*let inputTokens = [
 	{'value': 'nìngay', 'types': ['adv']},
@@ -45,7 +49,7 @@ console.log(tokens);
 ];*/
 parser.feed(tokens);
 
-console.log(util.inspect(parser.results, false, null, true));
+//console.log(util.inspect(parser.results, false, null, true));
 
 function getGrammarTypeOf(word) {
 	let type = word['type'];
@@ -82,6 +86,8 @@ function getGrammarTypeOf(word) {
 	return type;
 }
 
+console.log();
+console.log('\x1b[1m\x1b[34mParse results:\x1b[0m ' + parser.results.length + ' possible parse tree(s) found');
 for (let i = 0; i < parser.results.length; i++) {
 	let result = parser.results[i];
 	outputTree(verbClauseToTree(result));
