@@ -25,6 +25,7 @@
 
 	const a_left = makeTester('a_left');
 	const a_right = makeTester('a_right');
+	const ma = makeTester('ma');
 	
 	let processNounClause = function (data) {
 		let result = {
@@ -337,5 +338,20 @@ n_clause_topical ->
 	(n_clause_genitive):?
 	{% processNounClause %}
 
-adverbial -> %adv {% id %}
+adverbial -> %adv {%
+	function (data) {
+		return {
+			'type': 'adverb',
+			'adverb': data[0]
+		};
+	}
+%}
+adverbial -> %ma n_clause_subjective {%
+	function (data) {
+		return {
+			'type': 'vocative',
+			'noun': data[1]
+		};
+	}
+%}
 

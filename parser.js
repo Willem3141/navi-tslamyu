@@ -81,6 +81,8 @@ function getGrammarTypeOf(word) {
 	if (type === 'part') {
 		if (word['na\'vi'] === 'a') {
 			type = ['a_left', 'a_right'];
+		} else if (word['na\'vi'] === 'ma') {
+			type = 'ma';
 		}
 	}
 	return type;
@@ -90,6 +92,8 @@ console.log();
 console.log('\x1b[1m\x1b[34mParse results:\x1b[0m ' + parser.results.length + ' possible parse tree(s) found');
 for (let i = 0; i < parser.results.length; i++) {
 	let result = parser.results[i];
+	//console.log(JSON.stringify(result));
+	//console.log(JSON.stringify(verbClauseToTree(result)));
 	outputTree(verbClauseToTree(result));
 }
 
@@ -126,8 +130,14 @@ function verbClauseToTree(clause) {
 	if (clause['adverbials']) {
 		for (let i = 0; i < clause['adverbials'].length; i++) {
 			let adv = clause['adverbials'][i];
-			let adverbial = adverbialToTree(adv);
-			adverbial['role'] = 'adverbial';
+			let adverbial;
+			if (adv['type'] === 'adverb') {
+				adverbial = adverbialToTree(adv['adverb']);
+				adverbial['role'] = 'adverb';
+			} else if (adv['type'] === 'vocative') {
+				adverbial = nounClauseToTree(adv['noun']);
+				adverbial['role'] = 'vocative';
+			}
 			result['children'].push(adverbial);
 		}
 	}
