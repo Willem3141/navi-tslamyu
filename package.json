@@ -1,0 +1,8 @@
+{
+  "name": "navi-tslamyu",
+  "version": "0.0.1",
+  "description": "Na'vi parser and translator",
+  "dependencies": {
+    "nearley": "^2.19.1"
+  }
+}
