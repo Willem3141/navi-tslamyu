@@ -347,7 +347,7 @@ function NounClauseTree(clause) {
 
 		if (this.subclauses) {
 			for (let i = 0; i < this.subclauses.length; i++) {
-				subclauses = subclauses.concat(["[", "that", this.subclauses[i].translate(), "]"]);
+				subclauses = subclauses.concat(["that", this.subclauses[i].translate()]);
 			}
 		}
 
