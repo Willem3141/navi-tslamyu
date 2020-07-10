@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Na'vi parser and translator",
   "dependencies": {
+    "en-inflectors": "^1.0.12",
     "nearley": "^2.19.4",
     "node-fetch": "^2.6.0"
   }

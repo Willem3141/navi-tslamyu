@@ -1,5 +1,6 @@
 # Na'vi grammar in Nearley format
 
+# Helper functions
 @{%
 	function makeTester(name) {
 		return {
@@ -16,6 +17,7 @@
 
 	const vin = makeTester('vin');
 	const vtr = makeTester('vtr');
+	const vcp = makeTester('vcp');
 
 	const adj = makeTester('adj');
 	const adj_left = makeTester('adj_left');
@@ -65,6 +67,7 @@
 	};
 %}
 
+
 #sentence -> n_clause_topic:? verb_clause {%
 	#	function (data) {
 	#		return {
@@ -78,6 +81,7 @@ sentence -> verb_clause {% id %}
 verb_clause ->
 	vin_clause {% id %}
 	| vtr_clause {% id %}
+	| vcp_clause {% id %}
 
 
 ### INTRANSIIVE VERB CLAUSES ###
@@ -139,6 +143,7 @@ vin_clause_subjective ->
 		}
 	%})
 	{% id %}
+
 
 ### TRANSIIVE VERB CLAUSES ###
 
@@ -265,7 +270,7 @@ vtr_clause_full ->
 			result['agentive'] = data[1];
 			result['patientive'] = data[3];
 			let advs = result['adverbials'] ? [...result['adverbials']] : [];
-			advs = advs.concat(data[0]).concat(data[2]);
+			advs = data[0].concat(data[2]).concat(advs);
 			if (advs.length > 0) {
 				result['adverbials'] = advs;
 			}
@@ -287,6 +292,131 @@ vtr_clause_full ->
 		}
 	%})
 	{% id %}
+
+
+### COPULA VERB CLAUSES ###
+
+# a vcp_clause_bare cannot be a vcp_clause, because otherwise such a clause
+# would be ambiguous (vin_clause_bare vs vcp_clause_bare)
+# similarly, a vcp_clause_noun would be ambiguous (vin_clause_subjective)
+vcp_clause ->
+	vcp_clause_adj {% id %}
+	| vcp_clause_noun_adj {% id %}
+	#| vcp_clause_noun_noun {% id %}
+
+# bare copula verb clause: only a verb, no subject
+vcp_clause_bare ->
+	adverbial:* %vcp adverbial:*
+	{%
+		function (data) {
+			let result = {
+				'clause_type': 'copula',
+				'verb': data[1]
+			};
+			let advs = [];
+			advs = advs.concat(data[0]);
+			advs = advs.concat(data[2]);
+			if (advs.length > 0) {
+				result['adverbials'] = advs;
+			}
+			return result;
+		}
+	%}
+
+# copula verb clause with an adjective as the predicate
+# (is a bare clause with an adjective added to it)
+vcp_clause_adj ->
+	(adverbial:* %adj vcp_clause_bare
+	{%
+		function (data) {
+			let result = {...data[2]};
+			result['predicate'] = {...data[1]};
+			result['predicate']['type'] = 'adjective';
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = data[0].concat(advs);
+			if (advs.length > 0) {
+				result['adverbials'] = advs;
+			}
+			return result;
+		}
+	%}
+	| vcp_clause_bare %adj adverbial:*
+	{%
+		function (data) {
+			let result = {...data[0]};
+			result['predicate'] = {...data[1]};
+			result['predicate']['type'] = 'adjective';
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = advs.concat(data[2]);
+			if (advs.length > 0) {
+				result['adverbials'] = advs;
+			}
+			return result;
+		}
+	%})
+	{% id %}
+
+# copula verb clause with a noun as the subject and an adjective as the
+# predicate
+vcp_clause_noun_adj ->
+	(adverbial:* n_clause_subjective vcp_clause_adj
+	{%
+		function (data) {
+			let result = {...data[2]};
+			result['subjective'] = data[1];
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = data[0].concat(advs);
+			if (advs.length > 0) {
+				result['adverbials'] = advs;
+			}
+			return result;
+		}
+	%}
+	| vcp_clause_adj n_clause_subjective adverbial:*
+	{%
+		function (data) {
+			let result = {...data[0]};
+			result['subjective'] = data[1];
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = data[2].concat(advs);
+			if (advs.length > 0) {
+				result['adverbials'] = advs;
+			}
+			return result;
+		}
+	%}
+	| adverbial:* %adj adverbial:* n_clause_subjective vcp_clause_bare
+	{%
+		function (data) {
+			let result = {...data[4]};
+			result['subjective'] = data[3];
+			result['predicate'] = {...data[1]};
+			result['predicate']['type'] = 'adjective';
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = data[0].concat(data[2]).concat(advs);
+			if (advs.length > 0) {
+				result['adverbials'] = advs;
+			}
+			return result;
+		}
+	%}
+	| vcp_clause_bare n_clause_subjective adverbial:* %adj adverbial:*
+	{%
+		function (data) {
+			let result = {...data[0]};
+			result['subjective'] = data[1];
+			result['predicate'] = {...data[3]};
+			result['predicate']['type'] = 'adjective';
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = advs.concat(data[2]).concat(data[4]);
+			if (advs.length > 0) {
+				result['adverbials'] = advs;
+			}
+			return result;
+		}
+	%})
+	{% id %}
+
 
 ### NOUN CLAUSES ###
 
@@ -338,6 +468,9 @@ n_clause_topical ->
 	(n_clause_genitive):?
 	{% processNounClause %}
 
+
+### OTHERS ###
+
 adverbial -> %adv {%
 	function (data) {
 		return {
@@ -346,11 +479,11 @@ adverbial -> %adv {%
 		};
 	}
 %}
-adverbial -> %ma n_clause_subjective {%
+adverbial -> n_clause_dative {%
 	function (data) {
 		return {
-			'type': 'vocative',
-			'noun': data[1]
+			'type': 'dative',
+			'dative': data[0]
 		};
 	}
 %}

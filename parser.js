@@ -1,8 +1,9 @@
 const nearley = require('nearley');
 const grammar = require('./navi.js');
-const util = require('util');
 
+//const util = require('util');
 const fetch = require('node-fetch');
+const Inflectors = require("en-inflectors").Inflectors;
 
 const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 
@@ -11,11 +12,18 @@ main();
 async function main() {
 	let input = process.argv[2];
 	let responses = await getResponsesFor(input);
+
+	console.log('\x1b[1m\x1b[34mInput:\x1b[0m');
 	let tokens = [];
 	for (let i = 0; i < responses.length; i++) {
 		let response = responses[i];
 		let token = {};
 		token['value'] = response['tìpawm'];
+		if (response['sì\'eyng'].length === 0) {
+			error("Word \x1b[1m" + token['value'] + "\x1b[0m not recognized");
+			return;
+		}
+
 		let types = [];
 		for (let j = 0; j < response['sì\'eyng'].length; j++) {
 			let type = getGrammarTypeOf(response['sì\'eyng'][j]);
@@ -23,42 +31,40 @@ async function main() {
 				types.push(type);
 			} else if (type) {
 				types = types.concat(type);
+			} else {
+				warning("Word \x1b[1m" + token['value'] + "\x1b[0m has type '" +
+					response['sì\'eyng'][j]['type'] +
+					"' that the grammar analyzer doesn't understand yet");
 			}
 		}
+		if (types.length === 0) {
+			error("Word \x1b[1m" + token['value'] + "\x1b[0m has no valid types");
+			return;
+		}
+
 		token['types'] = types;
 		token['definition'] = response['sì\'eyng'];
 		tokens.push(token);
-	}
 
-	console.log('\x1b[1m\x1b[34mInput:\x1b[0m');
-	for (let i = 0; i < tokens.length; i++) {
-		let token = tokens[i];
 		console.log('\x1b[1m' + token['value'] + '\x1b[0m (' + token['types'].join(', ') + ')');
 	}
 
-	/*let inputTokens = [
-		{'value': 'nìngay', 'types': ['adv']},
-		{'value': 'rey', 'types': ['vin']},
-		{'value': 'po', 'types': ['n_subjective']},
-		{'value': 'a', 'types': ['a_left', 'a_right']},
-		{'value': 'tute', 'types': ['n_subjective']},
-		{'value': 'apxa', 'types': ['adj', 'adj_left', 'adj_right']},
-		{'value': 'tul', 'types': ['vin']}
-	];*/
-	/*let input = [
-		{'value': 'taronyul', 'types': ['n_agentive']},
-		{'value': 'apxa', 'types': ['adj', 'adj_left', 'adj_right']},
-		{'value': 'ioangit', 'types': ['n_patientive']},
-		{'value': 'taron', 'types': ['vtr']}
-	];*/
-	parser.feed(tokens);
+	console.log();
+
+	try {
+		parser.feed(tokens);
+	} catch (e) {
+		error("Parse failed at \x1b[1m" + e['token']['value']['value'] +
+			"\x1b[0m (word " + (e['offset'] + 1) + ")");
+		return;
+	}
 
 	//console.log(util.inspect(parser.results, false, null, true));
 
 	function getGrammarTypeOf(word) {
 		let t = word['type'];
 		let type = null;
-		if (t === 'n' || t === 'pn') {
+		if (t === 'n' || t === 'n:pr' || t === 'pn') {
 			let suffix = word['conjugated'][2][5];
 			switch (suffix) {
 				case '':
@@ -82,7 +88,12 @@ async function main() {
 			type = 'vin';
 		}
 		if (t === 'v:tr') {
+			// transitive verbs can also be used intransitively
 			type = ['vin', 'vtr'];
+		}
+		if (t === 'v:cp') {
+			// copula verbs can also be used intransitively
+			type = ['vin', 'vcp'];
 		}
 		if (t === 'part') {
 			if (word['na\'vi'] === 'a') {
@@ -94,19 +105,23 @@ async function main() {
 		if (t === 'adv') {
 			type = 'adv';
 		}
+		if (t === 'adj') {
+			type = 'adj';
+		}
 		//if (type === '') {
 		//	throw new Error('tslamyu doesn\'t understand word type: ' + t);
 		//}
 		return type;
 	}
 
-	console.log();
 	console.log('\x1b[1m\x1b[34mParse results:\x1b[0m ' + parser.results.length + ' possible parse tree(s) found');
 	for (let i = 0; i < parser.results.length; i++) {
 		let result = parser.results[i];
 		//console.log(JSON.stringify(result));
-		//console.log(JSON.stringify(verbClauseToTree(result)));
-		outputTree(verbClauseToTree(result));
+		//console.log(JSON.stringify(new VerbClauseTree(result)));
+		let tree = new VerbClauseTree(result);
+		outputTree(tree);
+		console.log(" -> \"" + tree.translate() + "\"");
 	}
 }
 
@@ -114,8 +129,7 @@ async function getResponsesFor(query) {
 	const response = await fetch('https://reykunyu.wimiso.nl/api/fwew?tìpawm=' + query)
 		.then(response => response.json())
 		.catch(error => {
-			message.channel.send("Something went wrong while searching. Please try again later, or ping Wllìm if this problem persists.")
-			return;
+			throw error;
 		});
 
 	return response;
@@ -131,73 +145,221 @@ function wordToString(word) {
 	return result;
 }
 
-function verbClauseToTree(clause) {
-	let result = {
-		'word': wordToString(clause['verb']),
-		'children': []
-	};
+function getShortTranslation(word) {
+	let result = word['definition'][0];
+
+	if (result["short_translation"]) {
+		return result["short_translation"];
+	}
+
+	let translation = result["translations"][0]["en"];
+	translation = translation.split(',')[0];
+	translation = translation.split(';')[0];
+	translation = translation.split(' (')[0];
+
+	if (result["type"][0] === "v"
+		&& translation.indexOf("to ") === 0) {
+		translation = translation.substr(3);
+	}
+
+	return translation;
+}
+
+function VerbClauseTree(clause) {
+	this.clause = clause;
+	this.word = wordToString(clause['verb']);
+	this.children = [];
+
 	if (clause['subjective']) {
-		let subjective = nounClauseToTree(clause['subjective'])
-		subjective['role'] = 'subjective';
-		result['children'].push(subjective);
+		this.subjective = new NounClauseTree(clause['subjective'])
+		this.subjective['role'] = 'subjective';
+		this.children.push(this.subjective);
 	}
 	if (clause['agentive']) {
-		let agentive = nounClauseToTree(clause['agentive'])
-		agentive['role'] = 'agentive';
-		result['children'].push(agentive);
+		this.agentive = new NounClauseTree(clause['agentive'])
+		this.agentive['role'] = 'agentive';
+		this.children.push(this.agentive);
 	}
 	if (clause['patientive']) {
-		let patientive = nounClauseToTree(clause['patientive'])
-		patientive['role'] = 'patientive';
-		result['children'].push(patientive);
+		this.patientive = new NounClauseTree(clause['patientive'])
+		this.patientive['role'] = 'patientive';
+		this.children.push(this.patientive);
+	}
+	if (clause['predicate']) {
+		if (clause['predicate']['type'] === 'adjective') {
+			this.predicate = new AdjectiveTree(clause['predicate'])
+			this.predicate['role'] = 'predicate';
+			this.children.push(this.predicate);
+		}
 	}
 	if (clause['adverbials']) {
+		this.adverbials = [];
+		this.datives = [];
 		for (let i = 0; i < clause['adverbials'].length; i++) {
 			let adv = clause['adverbials'][i];
 			let adverbial;
 			if (adv['type'] === 'adverb') {
-				adverbial = adverbialToTree(adv['adverb']);
+				adverbial = new AdverbialTree(adv['adverb']);
 				adverbial['role'] = 'adverb';
-			} else if (adv['type'] === 'vocative') {
-				adverbial = nounClauseToTree(adv['noun']);
-				adverbial['role'] = 'vocative';
+				this.adverbials.push(adverbial);
+			} else if (adv['type'] === 'dative') {
+				adverbial = new NounClauseTree(adv['dative']);
+				adverbial['role'] = 'dative';
+				this.datives.push(adverbial);
 			}
-			result['children'].push(adverbial);
+			this.children.push(adverbial);
 		}
 	}
-	return result;
+
+	this.translate = function() {
+
+		let subject = [];
+		if (this.subjective) {
+			subject = [this.subjective.translate()];
+		}
+		if (this.agentive) {
+			subject = [this.agentive.translate()];
+		}
+
+		if (subject.length === 0) {
+			subject = ['it'];  // TODO hmm
+		}
+
+		let object = [];
+		if (this.patientive) {
+			object = [this.patientive.translate("object")];
+		}
+		if (this.predicate) {
+			object = [this.predicate.translate("object")];
+		}
+
+		let verb = getShortTranslation(this.clause['verb']).split(' ');
+		if (verb[0] === "be") {
+			verb[0] = "is";  // TODO
+		} else {
+			let form = "VBZ";  // "walks"
+			verb[0] = new Inflectors(verb[0]).conjugate(form);
+		}
+
+		let adverbials = [];
+		if (this.adverbials) {
+			for (let i = 0; i < this.adverbials.length; i++) {
+				let adv = this.adverbials[i];
+				adverbials = adverbials.concat([adv.translate()]);
+			}
+		}
+		if (this.datives) {
+			for (let i = 0; i < this.datives.length; i++) {
+				let dative = this.datives[i];
+				adverbials = adverbials.concat(['to', dative.translate('object')]);
+			}
+		}
+		return subject.concat(verb).concat(object).concat(adverbials).join(' ');
+	}
 }
 
-function nounClauseToTree(clause) {
-	let result = {
-		'word': wordToString(clause['noun']),
-		'children': []
-	};
+function NounClauseTree(clause) {
+	this.clause = clause;
+	this.word = wordToString(clause['noun']);
+	this.children = [];
+
 	if (clause['subclauses']) {
+		this.subclauses = [];
 		for (let i = 0; i < clause['subclauses'].length; i++) {
 			let sub = clause['subclauses'][i];
-			let subclause = verbClauseToTree(sub);
+			let subclause = new VerbClauseTree(sub);
 			subclause['role'] = 'subclause';
-			result['children'].push(subclause);
+			this.subclauses.push(subclause);
+			this.children.push(subclause);
 		}
 	}
 	if (clause['possessives']) {
 		for (let i = 0; i < clause['possessives'].length; i++) {
 			let poss = clause['possessives'][i];
-			let possessive = nounClauseToTree(poss);
-			possessive['role'] = 'possessive';
-			result['children'].push(possessive);
+			this.possessive = new NounClauseTree(poss);  // FIXME could have more than one possessive ...
+			this.possessive['role'] = 'possessive';
+			this.children.push(this.possessive);
 		}
 	}
-	return result;
+
+	this.translate = function(nounCase) {
+
+		const pronouns = {
+			"I": ["me", "my"],
+			"you": ["you", "your"],
+			"he": ["him", "his"],
+			"she": ["her", "her"],
+			"he/she": ["him/her", "his/her"],
+			"his self": ["himself", "his own"],
+			"it": ["it", "its"],
+			"we": ["us", "our"],
+			"they": ["them", "their"],
+		}
+
+		let noun = getShortTranslation(this.clause['noun']);
+		let determiner = ["a/the"];
+		let possessor = [];
+		let subclauses = [];
+
+		// special case: proper nouns
+		if (this.clause['noun']['definition'][0]['type'] === "n:pr") {
+			noun = this.clause['noun']['definition'][0]['na\'vi'];
+			determiner = [];
+		}
+
+		if (pronouns.hasOwnProperty(noun)) {
+			determiner = [];
+			if (nounCase === "object") {
+				noun = pronouns[noun][0];
+			} else if (nounCase === "possessive") {
+				noun = pronouns[noun][1];
+			}
+		} else {
+			if (nounCase === "possessive") {
+				noun += "'s";
+			}
+		}
+
+		if (this.possessive) {
+			let possessiveTranslation = this.possessive.translate("possessive");
+
+			if (possessiveTranslation.split(' ').length === 1) {
+				determiner = [possessiveTranslation];
+			} else {
+				possessor = ["of", possessiveTranslation];
+			}
+		}
+
+		if (this.subclauses) {
+			for (let i = 0; i < this.subclauses.length; i++) {
+				subclauses = subclauses.concat(["[", "that", this.subclauses[i].translate(), "]"]);
+			}
+		}
+
+		return determiner.concat([noun]).concat(possessor).concat(subclauses).join(' ');
+	}
 }
 
-function adverbialToTree(clause) {
-	let result = {
-		'word': wordToString(clause),
-		'children': []
-	};
-	return result;
+function AdjectiveTree(clause) {
+	this.clause = clause;
+	this.word = wordToString(clause);
+	this.children = [];
+
+	this.translate = function() {
+		let translation = getShortTranslation(this.clause);
+		return translation;
+	}
+}
+
+function AdverbialTree(clause) {
+	this.clause = clause;
+	this.word = wordToString(clause);
+	this.children = [];
+
+	this.translate = function() {
+		let translation = getShortTranslation(this.clause);
+		return translation;
+	}
 }
 
 function outputTree(tree, prefix1 = '', prefix2 = '') {
@@ -228,5 +390,13 @@ function outputTree(tree, prefix1 = '', prefix2 = '') {
 
 function spaces(n) {
 	return Array(n + 1).join(' ');
+}
+
+function warning(msg) {
+	console.log('Warning: ' + msg);
+}
+
+function error(msg) {
+	console.log('\x1b[31m\x1b[1mError:\x1b[0m ' + msg);
 }
 
