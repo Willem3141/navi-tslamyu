@@ -165,6 +165,18 @@ function getShortTranslation(word) {
 	return translation;
 }
 
+const pronouns = {
+	"I": ["me", "my", "am"],
+	"you": ["you", "your", "are"],
+	"he": ["him", "his", "is"],
+	"she": ["her", "her", "is"],
+	"he/she": ["him/her", "his/her", "is"],
+	"his self": ["himself", "his own", "is"],
+	"it": ["it", "its", "is"],
+	"we": ["us", "our", "are"],
+	"they": ["them", "their", "are"],
+}
+
 function VerbClauseTree(clause) {
 	this.clause = clause;
 	this.word = wordToString(clause['verb']);
@@ -235,7 +247,11 @@ function VerbClauseTree(clause) {
 
 		let verb = getShortTranslation(this.clause['verb']).split(' ');
 		if (verb[0] === "be") {
-			verb[0] = "is";  // TODO
+			if (pronouns.hasOwnProperty(subject[0])) {
+				verb[0] = pronouns[subject[0]][2];
+			} else {
+				verb[0] = "is";
+			}
 		} else {
 			let form = "VBZ";  // "walks"
 			verb[0] = new Inflectors(verb[0]).conjugate(form);
@@ -283,19 +299,6 @@ function NounClauseTree(clause) {
 	}
 
 	this.translate = function(nounCase) {
-
-		const pronouns = {
-			"I": ["me", "my"],
-			"you": ["you", "your"],
-			"he": ["him", "his"],
-			"she": ["her", "her"],
-			"he/she": ["him/her", "his/her"],
-			"his self": ["himself", "his own"],
-			"it": ["it", "its"],
-			"we": ["us", "our"],
-			"they": ["them", "their"],
-		}
-
 		let noun = getShortTranslation(this.clause['noun']);
 		let determiner = ["a/the"];
 		let possessor = [];
