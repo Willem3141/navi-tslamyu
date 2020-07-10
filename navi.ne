@@ -302,7 +302,7 @@ vtr_clause_full ->
 vcp_clause ->
 	vcp_clause_adj {% id %}
 	| vcp_clause_noun_adj {% id %}
-	#| vcp_clause_noun_noun {% id %}
+	| vcp_clause_noun_noun {% id %}
 
 # bare copula verb clause: only a verb, no subject
 vcp_clause_bare ->
@@ -407,6 +407,56 @@ vcp_clause_noun_adj ->
 			result['subjective'] = data[1];
 			result['predicate'] = {...data[3]};
 			result['predicate']['type'] = 'adjective';
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = advs.concat(data[2]).concat(data[4]);
+			if (advs.length > 0) {
+				result['adverbials'] = advs;
+			}
+			return result;
+		}
+	%})
+	{% id %}
+
+# copula verb clause with a noun as the subject and another noun as the
+# predicate
+vcp_clause_noun_noun ->
+	(adverbial:* n_clause_subjective adverbial:* n_clause_subjective vcp_clause_bare
+	{%
+		function (data) {
+			let result = {...data[4]};
+			result['subjective'] = data[1];
+			result['predicate'] = {...data[3]};
+			result['predicate']['type'] = 'noun';
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = data[0].concat(data[2]).concat(advs);
+			if (advs.length > 0) {
+				result['adverbials'] = advs;
+			}
+			return result;
+		}
+	%}
+	| adverbial:* n_clause_subjective vcp_clause_bare n_clause_subjective adverbial:*
+	{%
+		function (data) {
+			let result = {...data[2]};
+			result['subjective'] = data[1];
+			result['predicate'] = {...data[3]};
+			result['predicate']['type'] = 'noun';
+			let advs = result['adverbials'] ? [...result['adverbials']] : [];
+			advs = data[0].concat(advs).concat(data[4]);
+			if (advs.length > 0) {
+				result['adverbials'] = advs;
+			}
+			return result;
+		}
+	%}
+	| vcp_clause_bare n_clause_subjective adverbial:* n_clause_subjective adverbial:*
+	{%
+		function (data) {
+			let result = {...data[0]};
+			result['subjective'] = data[1];
+			result['predicate'] = {...data[3]};
+			result['predicate']['type'] = 'noun';
 			let advs = result['adverbials'] ? [...result['adverbials']] : [];
 			advs = advs.concat(data[2]).concat(data[4]);
 			if (advs.length > 0) {

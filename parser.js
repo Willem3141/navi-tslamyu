@@ -165,16 +165,22 @@ function getShortTranslation(word) {
 	return translation;
 }
 
+// in order:
+//  * object form
+//  * possessive form
+//  * form of "to be" to use for the present tense
+//  * form of "to be" to use for the past tense
+//  * form of other verbs to use for the present tense
 const pronouns = {
-	"I": ["me", "my", "am"],
-	"you": ["you", "your", "are"],
-	"he": ["him", "his", "is"],
-	"she": ["her", "her", "is"],
-	"he/she": ["him/her", "his/her", "is"],
-	"his self": ["himself", "his own", "is"],
-	"it": ["it", "its", "is"],
-	"we": ["us", "our", "are"],
-	"they": ["them", "their", "are"],
+	"I": ["me", "my", "am", "was", "VBP"],
+	"you": ["you", "your", "are", "were", "VBP"],
+	"he": ["him", "his", "is", "was", "VBZ"],
+	"she": ["her", "her", "is", "was", "VBZ"],
+	"he/she": ["him/her", "his/her", "is", "was", "VBZ"],
+	"his self": ["himself", "his own", "is", "was", "VBZ"],
+	"it": ["it", "its", "is", "was", "VBZ"],
+	"we": ["us", "our", "are", "were", "VBP"],
+	"they": ["them", "their", "are", "were", "VBP"],
 }
 
 function VerbClauseTree(clause) {
@@ -200,6 +206,10 @@ function VerbClauseTree(clause) {
 	if (clause['predicate']) {
 		if (clause['predicate']['type'] === 'adjective') {
 			this.predicate = new AdjectiveTree(clause['predicate'])
+			this.predicate['role'] = 'predicate';
+			this.children.push(this.predicate);
+		} else if (clause['predicate']['type'] === 'noun') {
+			this.predicate = new NounClauseTree(clause['predicate'])
 			this.predicate['role'] = 'predicate';
 			this.children.push(this.predicate);
 		}
@@ -247,13 +257,15 @@ function VerbClauseTree(clause) {
 
 		let verb = getShortTranslation(this.clause['verb']).split(' ');
 		if (verb[0] === "be") {
+			verb[0] = "is";
 			if (pronouns.hasOwnProperty(subject[0])) {
 				verb[0] = pronouns[subject[0]][2];
-			} else {
-				verb[0] = "is";
 			}
 		} else {
-			let form = "VBZ";  // "walks"
+			let form = "VBZ";
+			if (pronouns.hasOwnProperty(subject[0])) {
+				form = pronouns[subject[0]][4];
+			}
 			verb[0] = new Inflectors(verb[0]).conjugate(form);
 		}
 
