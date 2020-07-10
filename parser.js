@@ -324,10 +324,10 @@ function NounClauseTree(clause) {
 		}
 
 		if (this.possessive) {
-			let possessiveTranslation = this.possessive.translate("possessive");
+			let possessiveTranslation = this.possessive.translate("object");
 
 			if (possessiveTranslation.split(' ').length === 1) {
-				determiner = [possessiveTranslation];
+				determiner = [this.possessive.translate("possessive")];
 			} else {
 				possessor = ["of", possessiveTranslation];
 			}
