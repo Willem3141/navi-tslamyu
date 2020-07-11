@@ -236,11 +236,14 @@ function VerbClauseTree(clause) {
 	this.translate = function() {
 
 		let subject = [];
+		let subjectPlural = false;
 		if (this.subjective) {
 			subject = [this.subjective.translate()];
+			subjectPlural = this.subjective.isPlural();
 		}
 		if (this.agentive) {
 			subject = [this.agentive.translate()];
+			subjectPlural = this.agentive.isPlural();
 		}
 
 		if (subject.length === 0) {
@@ -257,12 +260,12 @@ function VerbClauseTree(clause) {
 
 		let verb = getShortTranslation(this.clause['verb']).split(' ');
 		if (verb[0] === "be") {
-			verb[0] = "is";
+			verb[0] = subjectPlural ? "are" : "is";
 			if (pronouns.hasOwnProperty(subject[0])) {
 				verb[0] = pronouns[subject[0]][2];
 			}
 		} else {
-			let form = "VBZ";
+			let form = subjectPlural ? "VBP" : "VBZ";
 			if (pronouns.hasOwnProperty(subject[0])) {
 				form = pronouns[subject[0]][4];
 			}
@@ -310,39 +313,115 @@ function NounClauseTree(clause) {
 		}
 	}
 
+	this.isPlural = function() {
+		let definition = this.clause['noun']['definition'][0];
+		let prefix = definition['conjugated'][2][1];
+		return prefix !== "";
+	}
+
 	this.translate = function(nounCase) {
 		let noun = getShortTranslation(this.clause['noun']);
-		let determiner = ["a/the"];
+		let determiner = [];
 		let possessor = [];
 		let subclauses = [];
+		let definition = this.clause['noun']['definition'][0];
 
 		// special case: proper nouns
-		if (this.clause['noun']['definition'][0]['type'] === "n:pr") {
+		if (definition['type'] === "n:pr") {
 			noun = this.clause['noun']['definition'][0]['na\'vi'];
 			determiner = [];
 		}
 
-		if (pronouns.hasOwnProperty(noun)) {
+		// special case: pronouns
+		let isPronoun = pronouns.hasOwnProperty(noun);
+		if (isPronoun) {
 			determiner = [];
 			if (nounCase === "object") {
 				noun = pronouns[noun][0];
 			} else if (nounCase === "possessive") {
 				noun = pronouns[noun][1];
 			}
-		} else {
+		}
+
+		// handle affixes
+		let plural = this.isPlural();
+		let postNoun = [];
+		switch (definition['conjugated'][2][1]) {
+			case 'me':
+				determiner = ['two'];
+				break;
+			case 'pxe':
+				determiner = ['three'];
+				break;
+			case 'ay':
+			case '(ay)':
+				determiner = [];
+				break;
+		}
+		switch (definition['conjugated'][2][0]) {
+			case 'fì':
+				determiner = [plural ? 'these' : 'this'].concat(determiner);
+				break;
+			case 'tsa':
+				determiner = [plural ? 'those' : 'that'].concat(determiner);
+				break;
+			case 'pe':
+				determiner = ['which'].concat(determiner);
+				break;
+			case 'fra':
+				determiner = ['every'].concat(determiner);
+				break;
+		}
+		switch (definition['conjugated'][2][4]) {
+			case 'pe':
+				determiner = ['which'];
+				break;
+			case 'o':
+				determiner = ['some'];
+				break;
+		}
+		switch (definition['conjugated'][2][3]) {
+			case 'tsyìp':
+				noun = "little " + noun;
+				break;
+			case 'fkeyk':
+				postNoun = ['of ' + noun];
+				noun = 'state';
+				break;
+		}
+		switch (definition['conjugated'][2][2]) {
+			case 'fne':
+				postNoun = ['of ' + noun].concat(postNoun);
+				noun = 'type';
+				break;
+		}
+		if (plural) {
+			noun = new Inflectors(noun).toPlural();
+		}
+
+		// handle the case that this noun is a possessive
+		if (!isPronoun) {
 			if (nounCase === "possessive") {
 				noun += "'s";
 			}
 		}
 
+		// handle possessives attached to this noun
 		if (this.possessive) {
 			let possessiveTranslation = this.possessive.translate("object");
 
 			if (possessiveTranslation.split(' ').length === 1) {
-				determiner = [this.possessive.translate("possessive")];
+				determiner = [this.possessive.translate("possessive")].concat(determiner);
 			} else {
 				possessor = ["of", possessiveTranslation];
 			}
+		}
+
+		// finally, guess "the" as the determiner (could also be "a(n)" slä oeru ke'u)
+		if (determiner.length === 0
+				&& definition['type'] !== "n:pr"
+				&& !isPronoun) {
+			determiner = ['the'];
 		}
 
 		if (this.subclauses) {
@@ -351,7 +430,7 @@ function NounClauseTree(clause) {
 			}
 		}
 
-		return determiner.concat([noun]).concat(possessor).concat(subclauses).join(' ');
+		return determiner.concat([noun]).concat(postNoun).concat(possessor).concat(subclauses).join(' ');
 	}
 }
 
