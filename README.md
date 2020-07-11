@@ -14,27 +14,34 @@ Only a very limited set of grammar features are supported at the moment:
 
 * nouns
     * including conjugated nouns with **fì-/tsa-**, **-fkeyk** and similar affixes
+    * subclauses attached to nouns by **a**
+    * genitive attached to nouns
+* pronouns
 * intransitive verbs
     * subjective
 * transitive verbs
     * agentive
     * patientive
     * intransitive usage of transitive verb
-* adverbs
-* vocatives
-* subclauses attached to nouns by **a**
+* copula verbs
+    * with adjectives or nouns as the predicate
+* adjectives
+    * predicative usage
+* adverbials
+    * adverbs
+    * dative
 
 Anything else is unsupported for now, including:
 
 * adjectives
-    * predicative usage
     * attributive usage
-* verbs with infixes
+* adverbials
+    * adpositions
+    * vocatives
+    * topical
 * **si** verbs
 * modal verbs (requiring **<iv>** in the dependent verb)
-* pronouns
 * negation (**ke** / **rä'ä**)
-* dative, genitive, topical
 * numbers
 * **f**-words
 * interjections (**kaltxì**, **wiya**)
