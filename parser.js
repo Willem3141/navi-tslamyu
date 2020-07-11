@@ -3,17 +3,23 @@ const grammar = require('./navi.js');
 
 //const util = require('util');
 const fetch = require('node-fetch');
-const Inflectors = require("en-inflectors").Inflectors;
 
 const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 
+let verbose = false;
 main();
 
 async function main() {
 	let input = process.argv[2];
+	if (input === "-v" || input === "--verbose") {
+		verbose = true;
+		input = process.argv[3];
+	}
 	let responses = await getResponsesFor(input);
 
-	console.log('\x1b[1m\x1b[34mInput:\x1b[0m');
+	if (verbose) {
+		console.log('\x1b[1m\x1b[34mInput:\x1b[0m');
+	}
 	let tokens = [];
 	for (let i = 0; i < responses.length; i++) {
 		let response = responses[i];
@@ -46,10 +52,14 @@ async function main() {
 		token['definition'] = response['sì\'eyng'];
 		tokens.push(token);
 
-		console.log('\x1b[1m' + token['value'] + '\x1b[0m (' + token['types'].join(', ') + ')');
+		if (verbose) {
+			console.log('\x1b[1m' + token['value'] + '\x1b[0m (' + token['types'].join(', ') + ')');
+		}
 	}
 
-	console.log();
+	if (verbose) {
+		console.log();
+	}
 
 	try {
 		parser.feed(tokens);
@@ -114,14 +124,45 @@ async function main() {
 		return type;
 	}
 
-	console.log('\x1b[1m\x1b[34mParse results:\x1b[0m ' + parser.results.length + ' possible parse tree(s) found');
-	for (let i = 0; i < parser.results.length; i++) {
-		let result = parser.results[i];
-		//console.log(JSON.stringify(result));
-		//console.log(JSON.stringify(new VerbClauseTree(result)));
-		let tree = new VerbClauseTree(result);
-		outputTree(tree);
-		console.log(" -> \"" + tree.translate() + "\"");
+	if (verbose) {
+		console.log('\x1b[1m\x1b[34mParse results:\x1b[0m ' + parser.results.length + ' possible parse tree(s) found');
+	}
+	let results = parser.results;
+	results.sort((a, b) => a.getPenalty() - b.getPenalty());
+	let correct = results[0].getErrors().length === 0;
+	if (results.length > 0 && correct) {
+		console.log("Sentence seems correct");
+	} else {
+		console.log("Sentence seems incorrect");
+	}
+	if (verbose) {
+		for (let i = 0; i < results.length; i++) {
+			let result = results[i];
+			console.log('───────────────────────────────────────────────────');
+			outputTree(result);
+			console.log("(penalty: " + result.getPenalty() + ")");
+			for (let j = 0; j < result.getErrors().length; j++) {
+				console.log(result.getErrors()[j]);
+			}
+			console.log(" -> \"" + result.translate() + "\"");
+		}
+		console.log('───────────────────────────────────────────────────');
+	} else {
+		let lastTranslation = null
+		for (let i = 0; i < results.length; i++) {
+			let result = results[i];
+			if (i > 0 && result.getPenalty() > results[0].getPenalty()) {
+				break;
+			}
+			for (let j = 0; j < result.getErrors().length; j++) {
+				console.log(result.getErrors()[j]);
+			}
+			let translation = result.translate();
+			if (correct && translation !== lastTranslation) {
+				console.log(" -> \"" + translation + "\"");
+				lastTranslation = translation;
+			}
+		}
 	}
 }
 
@@ -135,333 +176,15 @@ async function getResponsesFor(query) {
 	return response;
 }
 
-function wordToString(word) {
-	let result = '\x1b[1m' + word['value'] + '\x1b[0m';
-
-	if (word['definition']) {
-		result += ' -> ' + word['definition'][0]['translations'][0]['en'];
-	}
-
-	return result;
-}
-
-function getShortTranslation(word) {
-	let result = word['definition'][0];
-
-	if (result["short_translation"]) {
-		return result["short_translation"];
-	}
-
-	let translation = result["translations"][0]["en"];
-	translation = translation.split(',')[0];
-	translation = translation.split(';')[0];
-	translation = translation.split(' (')[0];
-
-	if (result["type"][0] === "v"
-		&& translation.indexOf("to ") === 0) {
-		translation = translation.substr(3);
-	}
-
-	return translation;
-}
-
-// in order:
-//  * object form
-//  * possessive form
-//  * form of "to be" to use for the present tense
-//  * form of "to be" to use for the past tense
-//  * form of other verbs to use for the present tense
-const pronouns = {
-	"I": ["me", "my", "am", "was", "VBP"],
-	"you": ["you", "your", "are", "were", "VBP"],
-	"he": ["him", "his", "is", "was", "VBZ"],
-	"she": ["her", "her", "is", "was", "VBZ"],
-	"he/she": ["him/her", "his/her", "is", "was", "VBZ"],
-	"his self": ["himself", "his own", "is", "was", "VBZ"],
-	"it": ["it", "its", "is", "was", "VBZ"],
-	"we": ["us", "our", "are", "were", "VBP"],
-	"they": ["them", "their", "are", "were", "VBP"],
-}
-
-function VerbClauseTree(clause) {
-	this.clause = clause;
-	this.word = wordToString(clause['verb']);
-	this.children = [];
-
-	if (clause['subjective']) {
-		this.subjective = new NounClauseTree(clause['subjective'])
-		this.subjective['role'] = 'subjective';
-		this.children.push(this.subjective);
-	}
-	if (clause['agentive']) {
-		this.agentive = new NounClauseTree(clause['agentive'])
-		this.agentive['role'] = 'agentive';
-		this.children.push(this.agentive);
-	}
-	if (clause['patientive']) {
-		this.patientive = new NounClauseTree(clause['patientive'])
-		this.patientive['role'] = 'patientive';
-		this.children.push(this.patientive);
-	}
-	if (clause['predicate']) {
-		if (clause['predicate']['type'] === 'adjective') {
-			this.predicate = new AdjectiveTree(clause['predicate'])
-			this.predicate['role'] = 'predicate';
-			this.children.push(this.predicate);
-		} else if (clause['predicate']['type'] === 'noun') {
-			this.predicate = new NounClauseTree(clause['predicate'])
-			this.predicate['role'] = 'predicate';
-			this.children.push(this.predicate);
-		}
-	}
-	if (clause['adverbials']) {
-		this.adverbials = [];
-		this.datives = [];
-		for (let i = 0; i < clause['adverbials'].length; i++) {
-			let adv = clause['adverbials'][i];
-			let adverbial;
-			if (adv['type'] === 'adverb') {
-				adverbial = new AdverbialTree(adv['adverb']);
-				adverbial['role'] = 'adverb';
-				this.adverbials.push(adverbial);
-			} else if (adv['type'] === 'dative') {
-				adverbial = new NounClauseTree(adv['dative']);
-				adverbial['role'] = 'dative';
-				this.datives.push(adverbial);
-			}
-			this.children.push(adverbial);
-		}
-	}
-
-	this.translate = function() {
-
-		let subject = [];
-		let subjectPlural = false;
-		if (this.subjective) {
-			subject = [this.subjective.translate()];
-			subjectPlural = this.subjective.isPlural();
-		}
-		if (this.agentive) {
-			subject = [this.agentive.translate()];
-			subjectPlural = this.agentive.isPlural();
-		}
-
-		if (subject.length === 0) {
-			subject = ['it'];  // TODO hmm
-		}
-
-		let object = [];
-		if (this.patientive) {
-			object = [this.patientive.translate("object")];
-		}
-		if (this.predicate) {
-			object = [this.predicate.translate("object")];
-		}
-
-		let verb = getShortTranslation(this.clause['verb']).split(' ');
-		if (verb[0] === "be") {
-			verb[0] = subjectPlural ? "are" : "is";
-			if (pronouns.hasOwnProperty(subject[0])) {
-				verb[0] = pronouns[subject[0]][2];
-			}
-		} else {
-			let form = subjectPlural ? "VBP" : "VBZ";
-			if (pronouns.hasOwnProperty(subject[0])) {
-				form = pronouns[subject[0]][4];
-			}
-			verb[0] = new Inflectors(verb[0]).conjugate(form);
-		}
-
-		let adverbials = [];
-		if (this.adverbials) {
-			for (let i = 0; i < this.adverbials.length; i++) {
-				let adv = this.adverbials[i];
-				adverbials = adverbials.concat([adv.translate()]);
-			}
-		}
-		if (this.datives) {
-			for (let i = 0; i < this.datives.length; i++) {
-				let dative = this.datives[i];
-				adverbials = adverbials.concat(['to', dative.translate('object')]);
-			}
-		}
-		return subject.concat(verb).concat(object).concat(adverbials).join(' ');
-	}
-}
-
-function NounClauseTree(clause) {
-	this.clause = clause;
-	this.word = wordToString(clause['noun']);
-	this.children = [];
-
-	if (clause['subclauses']) {
-		this.subclauses = [];
-		for (let i = 0; i < clause['subclauses'].length; i++) {
-			let sub = clause['subclauses'][i];
-			let subclause = new VerbClauseTree(sub);
-			subclause['role'] = 'subclause';
-			this.subclauses.push(subclause);
-			this.children.push(subclause);
-		}
-	}
-	if (clause['possessives']) {
-		for (let i = 0; i < clause['possessives'].length; i++) {
-			let poss = clause['possessives'][i];
-			this.possessive = new NounClauseTree(poss);  // FIXME could have more than one possessive ...
-			this.possessive['role'] = 'possessive';
-			this.children.push(this.possessive);
-		}
-	}
-
-	this.isPlural = function() {
-		let definition = this.clause['noun']['definition'][0];
-		let prefix = definition['conjugated'][2][1];
-		return prefix !== "";
-	}
-
-	this.translate = function(nounCase) {
-		let noun = getShortTranslation(this.clause['noun']);
-		let determiner = [];
-		let possessor = [];
-		let subclauses = [];
-		let definition = this.clause['noun']['definition'][0];
-
-		// special case: proper nouns
-		if (definition['type'] === "n:pr") {
-			noun = this.clause['noun']['definition'][0]['na\'vi'];
-			determiner = [];
-		}
-
-		// special case: pronouns
-		let isPronoun = pronouns.hasOwnProperty(noun);
-		if (isPronoun) {
-			determiner = [];
-			if (nounCase === "object") {
-				noun = pronouns[noun][0];
-			} else if (nounCase === "possessive") {
-				noun = pronouns[noun][1];
-			}
-		}
-
-		// handle affixes
-		let plural = this.isPlural();
-		let postNoun = [];
-		switch (definition['conjugated'][2][1]) {
-			case 'me':
-				determiner = ['two'];
-				break;
-			case 'pxe':
-				determiner = ['three'];
-				break;
-			case 'ay':
-			case '(ay)':
-				determiner = [];
-				break;
-		}
-		switch (definition['conjugated'][2][0]) {
-			case 'fì':
-				determiner = [plural ? 'these' : 'this'].concat(determiner);
-				break;
-			case 'tsa':
-				determiner = [plural ? 'those' : 'that'].concat(determiner);
-				break;
-			case 'pe':
-				determiner = ['which'].concat(determiner);
-				break;
-			case 'fra':
-				determiner = ['every'].concat(determiner);
-				break;
-		}
-		switch (definition['conjugated'][2][4]) {
-			case 'pe':
-				determiner = ['which'];
-				break;
-			case 'o':
-				determiner = ['some'];
-				break;
-		}
-		switch (definition['conjugated'][2][3]) {
-			case 'tsyìp':
-				noun = "little " + noun;
-				break;
-			case 'fkeyk':
-				postNoun = ['of ' + noun];
-				noun = 'state';
-				break;
-		}
-		switch (definition['conjugated'][2][2]) {
-			case 'fne':
-				postNoun = ['of ' + noun].concat(postNoun);
-				noun = 'type';
-				break;
-		}
-		if (plural) {
-			noun = new Inflectors(noun).toPlural();
-		}
-
-		// handle the case that this noun is a possessive
-		if (!isPronoun) {
-			if (nounCase === "possessive") {
-				noun += "'s";
-			}
-		}
-
-		// handle possessives attached to this noun
-		if (this.possessive) {
-			let possessiveTranslation = this.possessive.translate("object");
-
-			if (possessiveTranslation.split(' ').length === 1) {
-				determiner = [this.possessive.translate("possessive")].concat(determiner);
-			} else {
-				possessor = ["of", possessiveTranslation];
-			}
-		}
-
-		// finally, guess "the" as the determiner (could also be "a(n)" slä oeru ke'u)
-		if (determiner.length === 0
-				&& definition['type'] !== "n:pr"
-				&& !isPronoun) {
-			determiner = ['the'];
-		}
-
-		if (this.subclauses) {
-			for (let i = 0; i < this.subclauses.length; i++) {
-				subclauses = subclauses.concat(["that", this.subclauses[i].translate()]);
-			}
-		}
-
-		return determiner.concat([noun]).concat(postNoun).concat(possessor).concat(subclauses).join(' ');
-	}
-}
-
-function AdjectiveTree(clause) {
-	this.clause = clause;
-	this.word = wordToString(clause);
-	this.children = [];
-
-	this.translate = function() {
-		let translation = getShortTranslation(this.clause);
-		return translation;
-	}
-}
-
-function AdverbialTree(clause) {
-	this.clause = clause;
-	this.word = wordToString(clause);
-	this.children = [];
-
-	this.translate = function() {
-		let translation = getShortTranslation(this.clause);
-		return translation;
-	}
-}
-
 function outputTree(tree, prefix1 = '', prefix2 = '') {
 	let mainText = '';
 	if (tree['role']) {
 		mainText += '\x1b[33m' + tree['role'] + ': \x1b[0m';
 	}
-	mainText += tree['word'];
+	mainText += '\x1b[1m' + tree['word'] + '\x1b[0m';
+	if (tree['translation']) {
+		mainText += ' -> ' + tree['translation'];
+	}
 	console.log(prefix1 + mainText);
 	if (tree['children']) {
 		let prefixLength = 1;
