@@ -64,7 +64,6 @@ async function main() {
 	try {
 		parser.feed(tokens);
 	} catch (e) {
-		throw e;
 		error("Parse failed at \x1b[1m" + e['token']['value']['value'] +
 			"\x1b[0m (word " + (e['offset'] + 1) + ")");
 		return;
@@ -146,7 +145,7 @@ async function main() {
 		}
 		console.log('───────────────────────────────────────────────────');
 	} else {
-		let lastTranslation = null
+		let lastTranslation = null;
 		for (let i = 0; i < results.length; i++) {
 			let result = results[i];
 			if (i > 0 && result.getPenalty() > results[0].getPenalty()) {
