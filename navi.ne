@@ -114,6 +114,11 @@ class SentenceTree extends Tree {
 							part['clause']['value'] + "] cannot be in the same clause");
 				} else {
 					this.verb = part['clause'];
+					if (part['negation']) {
+						this.negation = part['negation'];
+						this.negation.role = 'negation';
+						this.children.push(this.negation);
+					}
 				}
 			}
 		}
@@ -260,15 +265,21 @@ class SentenceTree extends Tree {
 			object = [this.patientive.translate("object")];
 		}
 		if (this.predicate) {
-			object = [this.predicate.translate("object")];
-		}
-		if (this.genitive) {
-			object = [this.genitive.translate("possessive")];
+			if (this.predicate.role === "predicate (genitive)") {
+				object = ['of', this.predicate.translate("object")];
+			} else {
+				object = [this.predicate.translate("object")];
+			}
 		}
 
 		let verb = ["(verb omitted)"];
 		if (this.verb) {
 			verb = getShortTranslation(this.verb).split(' ');
+
+			if (this.negation) {
+				verb = ['don\'t'].concat(verb);
+			}
+
 			if (verb[0] === "be") {
 				verb[0] = subjectPlural ? "are" : "is";
 				if (pronouns.hasOwnProperty(subject[0])) {
@@ -480,6 +491,21 @@ class AdverbialTree extends Tree {
 	}
 }
 
+class ParticleTree extends Tree {
+
+	constructor(clause) {
+		super();
+		this.clause = clause;
+		this.word = this.clause['value'];
+		this.translation = getTranslation(this.clause);
+	}
+
+	translate() {
+		let translation = getShortTranslation(this.clause);
+		return translation;
+	}
+}
+
 function makeTester(name) {
 	return {
 		'test': x => x['types'].includes(name)
@@ -506,6 +532,7 @@ const adv = makeTester('adv');
 const a_left = makeTester('a_left');
 const a_right = makeTester('a_right');
 const ma = makeTester('ma');
+const ke = makeTester('ke');
 
 let processSentence = function (data) {
 	return new SentenceTree(data[0]);
@@ -547,6 +574,10 @@ let processNounClause = function (data) {
 	}
 	return new NounClauseTree(result);
 };
+
+let processParticle = function (data) {
+	return new ParticleTree(data[0]);
+}
 %}
 
 
@@ -569,7 +600,13 @@ sentence_part -> adverbial {% id %}
 
 ### VERB CLAUSES ###
 
-v_clause -> verb {% id %}
+v_clause -> negation:? verb {% (data) => ({
+	'type': data[1]['type'],
+	'clause': data[1]['clause'],
+	'negation': data[0]
+}) %}
+
+negation -> %ke {% processParticle %}
 
 verb -> %vin {% (data) => ({'type': 'vin', 'clause': data[0]}) %}
 verb -> %vtr {% (data) => ({'type': 'vtr', 'clause': data[0]}) %}
