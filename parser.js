@@ -64,6 +64,7 @@ async function main() {
 	try {
 		parser.feed(tokens);
 	} catch (e) {
+		throw e;
 		error("Parse failed at \x1b[1m" + e['token']['value']['value'] +
 			"\x1b[0m (word " + (e['offset'] + 1) + ")");
 		return;
@@ -173,10 +174,10 @@ async function getResponsesFor(query) {
 	return response;
 }
 
-function outputTree(tree, prefix1 = '', prefix2 = '') {
+function outputTree(tree, prefix1 = '', prefix2 = '', role = null) {
 	let mainText = '';
-	if (tree['role']) {
-		mainText += '\x1b[33m' + tree['role'] + ': \x1b[0m';
+	if (role) {
+		mainText += '\x1b[33m' + role + ': \x1b[0m';
 	}
 	mainText += '\x1b[1m' + tree['word'] + '\x1b[0m';
 	if (tree['translation']) {
@@ -185,18 +186,20 @@ function outputTree(tree, prefix1 = '', prefix2 = '') {
 	console.log(prefix1 + mainText);
 	if (tree['children']) {
 		let prefixLength = 1;
-		if (tree['role']) {
-			prefixLength = tree['role'].length + 3;
+		if (role) {
+			prefixLength = role.length + 3;
 		}
 		for (let i = 0; i < tree['children'].length; i++) {
 			if (i === tree['children'].length - 1) {
 				outputTree(tree['children'][i],
 					prefix2 + spaces(prefixLength) + '└─ ',
-					prefix2 + spaces(prefixLength) + '   ');
+					prefix2 + spaces(prefixLength) + '   ',
+					tree['roles'][i]);
 			} else {
 				outputTree(tree['children'][i],
 					prefix2 + spaces(prefixLength) + '├─ ',
-					prefix2 + spaces(prefixLength) + '│  ');
+					prefix2 + spaces(prefixLength) + '│  ',
+					tree['roles'][i]);
 			}
 		}
 	}

@@ -55,6 +55,7 @@ class Tree {
 		this.word = null;
 		this.translation = null;
 		this.children = [];
+		this.roles = [];
 
 		this.penalty = 0;
 		this.errors = [];
@@ -96,6 +97,7 @@ class SentenceTree extends Tree {
 
 		this.subjective = null;
 		this.predicate = null;
+		this.predicateType = null;
 		this.agentive = null;
 		this.patientive = null;
 		this.genitive = null;
@@ -116,8 +118,8 @@ class SentenceTree extends Tree {
 					this.verb = part['clause'];
 					if (part['negation']) {
 						this.negation = part['negation'];
-						this.negation.role = 'negation';
 						this.children.push(this.negation);
+						this.roles.push('negation');
 					}
 				}
 			}
@@ -128,15 +130,17 @@ class SentenceTree extends Tree {
 			let part = clause[i];
 			if (part['type'] !== 'vin' && part['type'] !== 'vtr' &&
 					part['type'] !== 'vcp') {
+				let role = null;
 				if (part['type'] === 'subjective') {
 					if (!this.subjective &&
 							(!this.verb || this.verbType === "vin" ||
 							this.verbType === "vcp")) {
 						this.subjective = part['clause'];
-						this.subjective.role = 'subjective';
+						role = 'subjective';
 					} else if (!this.predicate && this.verbType === "vcp") {
 						this.predicate = part['clause'];
-						this.predicate.role = 'predicate';
+						role = 'predicate';
+						this.predicateType = 'noun';
 					} else if (this.verbType === "vin") {
 						this.error(1, "The two subjectives [" +
 								this.subjective.word +
@@ -151,7 +155,7 @@ class SentenceTree extends Tree {
 				if (part['type'] === 'agentive') {
 					if (!this.agentive && (!this.verb || this.verbType === "vtr")) {
 						this.agentive = part['clause'];
-						this.agentive.role = 'agentive';
+						role = 'agentive';
 					} else if (this.verbType === "vtr") {
 						this.error(1, "The two agentives [" +
 								this.agentive.word +
@@ -166,7 +170,7 @@ class SentenceTree extends Tree {
 				if (part['type'] === 'patientive') {
 					if (!this.patientive && (!this.verb || this.verbType === "vtr")) {
 						this.patientive = part['clause'];
-						this.patientive.role = 'patientive';
+						role = 'patientive';
 					} else if (this.verbType === "vtr") {
 						this.error(1, "The two patientives [" +
 								this.patientive.word +
@@ -180,12 +184,13 @@ class SentenceTree extends Tree {
 				}
 				if (part['type'] === 'dative') {
 					this.datives.push(part['clause']);
-					part['clause'].role = 'dative';
+					role = 'dative';
 				}
 				if (part['type'] === 'genitive') {
 					if (!this.predicate && this.verbType === "vcp") {
 						this.predicate = part['clause'];
-						this.predicate.role = 'predicate (genitive)';
+						role = 'predicate';
+						this.predicateType = 'genitive';
 					} else {
 						this.error(1, "Genitive [" +
 								part.clause.word +
@@ -195,9 +200,10 @@ class SentenceTree extends Tree {
 				if (part['type'] === 'adjective') {
 					if (!this.predicate && this.verbType === "vcp") {
 						this.predicate = part['clause'];
-						this.predicate.role = 'predicate';
+						role = 'predicate';
+						this.predicateType = 'adjective';
 					} else if (this.verbType === "vcp") {
-						if (this.predicate.role === "predicate (genitive)") {
+						if (role === "predicate (genitive)") {
 							this.error(1, "Genitive [" +
 									this.predicate.word +
 									"] does not connect to any noun");
@@ -217,9 +223,10 @@ class SentenceTree extends Tree {
 				}
 				if (part['type'] === 'adverbial') {
 					this.adverbials.push(part['clause']);
-					part['clause'].role = 'adverbial';
+					role = 'adverbial';
 				}
 				this.children.push(part['clause']);
+				this.roles.push(role);
 			}
 		}
 
@@ -265,7 +272,7 @@ class SentenceTree extends Tree {
 			object = [this.patientive.translate("object")];
 		}
 		if (this.predicate) {
-			if (this.predicate.role === "predicate (genitive)") {
+			if (this.predicateType === "genitive") {
 				object = ['of', this.predicate.translate("object")];
 			} else {
 				object = [this.predicate.translate("object")];
@@ -333,17 +340,17 @@ class NounClauseTree extends Tree {
 			for (let i = 0; i < this.clause['subclauses'].length; i++) {
 				let sub = this.clause['subclauses'][i];
 				let subclause = sub;
-				subclause['role'] = 'subclause';
 				this.subclauses.push(subclause);
 				this.children.push(subclause);
+				this.roles.push('subclause');
 			}
 		}
 		if (this.clause['possessives']) {
 			for (let i = 0; i < this.clause['possessives'].length; i++) {
 				let poss = this.clause['possessives'][i];
 				this.possessive = poss;
-				this.possessive['role'] = 'possessive';
 				this.children.push(this.possessive);
+				this.roles.push('possessive');
 			}
 		}
 	}
