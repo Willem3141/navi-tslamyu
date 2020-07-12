@@ -91,59 +91,128 @@ class SentenceTree extends Tree {
 	constructor(clause) {
 		super();
 
+		this.verb = null;
+		this.verbType = "vcp";  // by default, assume omitted "lu"
+
 		this.subjective = null;
+		this.predicate = null;
 		this.agentive = null;
 		this.patientive = null;
 		this.genitive = null;
 		this.adverbials = [];
 		this.datives = [];
 
+		// first find the verb and its type
 		for (let i = 0; i < clause.length; i++) {
 			let part = clause[i];
 			if (part['type'] === 'vin' || part['type'] === 'vtr' ||
 					part['type'] === 'vcp') {
 				this.verbType = part['type'];
 				if (this.verb) {
-					this.error(1, "two verbs [" + this.verb['value'] +
+					this.error(1, "The two verbs [" + this.verb['value'] +
 							"] and [" +
-							part['clause']['value'] + "] in the same clause");
+							part['clause']['value'] + "] cannot be in the same clause");
 				} else {
 					this.verb = part['clause'];
 				}
-			} else {
+			}
+		}
+
+		// now collect the other parts of the sentence
+		for (let i = 0; i < clause.length; i++) {
+			let part = clause[i];
+			if (part['type'] !== 'vin' && part['type'] !== 'vtr' &&
+					part['type'] !== 'vcp') {
 				if (part['type'] === 'subjective') {
-					if (this.subjective) {
-						// error: two subjectives (TODO except if vcp)
-					} else {
+					if (!this.subjective &&
+							(!this.verb || this.verbType === "vin" ||
+							this.verbType === "vcp")) {
 						this.subjective = part['clause'];
+						this.subjective.role = 'subjective';
+					} else if (!this.predicate && this.verbType === "vcp") {
+						this.predicate = part['clause'];
+						this.predicate.role = 'predicate';
+					} else if (this.verbType === "vin") {
+						this.error(1, "The two subjectives [" +
+								this.subjective.word +
+								"] and [" + part.clause.word +
+								"] cannot be in the same clause");
+					} else if (this.verb) {
+						this.error(1, "Subjective [" + part.clause.word +
+								"] cannot be used with transitive verb [" +
+								this.verb['value'] + "]");
 					}
 				}
 				if (part['type'] === 'agentive') {
-					if (this.agentive) {
-						// error: two agentives
-					} else {
+					if (!this.agentive && (!this.verb || this.verbType === "vtr")) {
 						this.agentive = part['clause'];
+						this.agentive.role = 'agentive';
+					} else if (this.verbType === "vtr") {
+						this.error(1, "The two agentives [" +
+								this.agentive.word +
+								"] and [" + part.clause.word +
+								"] cannot be in the same clause");
+					} else if (this.verb) {
+						this.error(1, "Agentive [" + part.clause.word +
+								"] cannot be used with intransitive verb [" +
+								this.verb['value'] + "]");
 					}
 				}
 				if (part['type'] === 'patientive') {
-					if (this.patientive) {
-						// error: two patientives
-					} else {
+					if (!this.patientive && (!this.verb || this.verbType === "vtr")) {
 						this.patientive = part['clause'];
+						this.patientive.role = 'patientive';
+					} else if (this.verbType === "vtr") {
+						this.error(1, "The two patientives [" +
+								this.patientive.word +
+								"] and [" + part.clause.word +
+								"] cannot be in the same clause");
+					} else if (this.verb) {
+						this.error(1, "Patientive [" + part.clause.word +
+								"] cannot be used with intransitive verb [" +
+								this.verb['value'] + "]");
 					}
 				}
 				if (part['type'] === 'dative') {
 					this.datives.push(part['clause']);
+					part['clause'].role = 'dative';
 				}
 				if (part['type'] === 'genitive') {
-					if (this.genitive) {
-						// error: two genitives
+					if (!this.predicate && this.verbType === "vcp") {
+						this.predicate = part['clause'];
+						this.predicate.role = 'predicate (genitive)';
 					} else {
-						this.genitive = part['clause'];
+						this.error(1, "Genitive [" +
+								part.clause.word +
+								"] does not belong to any noun");
+					}
+				}
+				if (part['type'] === 'adjective') {
+					if (!this.predicate && this.verbType === "vcp") {
+						this.predicate = part['clause'];
+						this.predicate.role = 'predicate';
+					} else if (this.verbType === "vcp") {
+						if (this.predicate.role === "predicate (genitive)") {
+							this.error(1, "Genitive [" +
+									this.predicate.word +
+									"] does not connect to any noun");
+						} else {
+							this.error(1, "The words [" +
+									this.predicate.word +
+									"] and [" +
+									part.clause.word +
+									"] cannot both be predicates in the same clause");
+						}
+					} else {
+						this.error(1, "Adjective [" +
+								part.clause.word +
+								"] cannot be used predicatively with a non-copula " +
+								"verb (did you mean to use an adverb instead?)");
 					}
 				}
 				if (part['type'] === 'adverbial') {
 					this.adverbials.push(part['clause']);
+					part['clause'].role = 'adverbial';
 				}
 				this.children.push(part['clause']);
 			}
@@ -154,47 +223,32 @@ class SentenceTree extends Tree {
 			this.translation = getTranslation(this.verb);
 		}
 
-		// handle errors
+		// Special penalties:
+
+		// omitting a verb is rare and should be avoided
 		if (!this.verb) {
 			this.penalize(0.1);
 		}
+
+		// slight penalty for intransitive verb usage, because if both
+		// transitive and intransitive usages of a verb are possible we don't
+		// want to show both separately
 		if (this.verbType === "vin") {
-			if (this.agentive) {
-				this.error(1, "Agentive [" + this.agentive['word'] +
-						"] cannot be used with intransitive verb [" +
-						this.verb['value'] + "]");
-			} else if (this.patientive) {
-				this.error(1, "Patientive [" + this.patientive['word'] +
-						"] cannot be used with intransitive verb [" +
-						this.verb['value'] + "]");
-			}
-		}
-		if (this.verbType === "vtr") {
-			if (this.subjective) {
-				this.error(1, "Subjective [" + this.subjective['word'] +
-						"] cannot be used with transitive verb [" +
-						this.verb['value'] + "]");
-			}
-		}
-		if (this.genitive) {
-			if (this.verbType === "vin" || this.verbType === "vtr") {
-				this.error(2, "Genitive [" + this.genitive['word'] +
-						"] does not belong to anything");
-			} else {
-				// these "lu oeyä" constructions are rather rare
-				this.penalize(0.1);
-			}
+			this.penalize(0.001);
 		}
 	}
 
 	translate() {
 
 		let subject = [];
+		let subjectPlural = false;
 		if (this.subjective) {
 			subject = [this.subjective.translate()];
+			subjectPlural = this.subjective.isPlural();
 		}
 		if (this.agentive) {
 			subject = [this.agentive.translate()];
+			subjectPlural = this.agentive.isPlural();
 		}
 
 		if (subject.length === 0) {
@@ -216,12 +270,12 @@ class SentenceTree extends Tree {
 		if (this.verb) {
 			verb = getShortTranslation(this.verb).split(' ');
 			if (verb[0] === "be") {
-				verb[0] = "is";
+				verb[0] = subjectPlural ? "are" : "is";
 				if (pronouns.hasOwnProperty(subject[0])) {
 					verb[0] = pronouns[subject[0]][2];
 				}
 			} else {
-				let form = "VBZ";
+				let form = subjectPlural ? "VBP" : "VBZ";
 				if (pronouns.hasOwnProperty(subject[0])) {
 					form = pronouns[subject[0]][4];
 				}
@@ -231,7 +285,7 @@ class SentenceTree extends Tree {
 			if (this.subjective
 					&& !this.agentive && !this.patientive && !this.topical
 					&& (this.genitive || this.predicate || this.datives.length > 0)) {
-				verb[0] = "is";
+				verb[0] = subjectPlural ? "are" : "is";
 				if (pronouns.hasOwnProperty(subject[0])) {
 					verb[0] = pronouns[subject[0]][2];
 				}
@@ -283,6 +337,12 @@ class NounClauseTree extends Tree {
 		}
 	}
 
+	isPlural() {
+		let definition = this.clause['noun']['definition'][0];
+		let prefix = definition['conjugated'][2][1];
+		return prefix !== "";
+	}
+
 	translate(nounCase) {
 		let noun = getShortTranslation(this.clause['noun']);
 		let determiner = ["a/the"];
@@ -313,29 +373,26 @@ class NounClauseTree extends Tree {
 		}
 
 		// handle affixes
-		let plural = false;
+		let plural = this.isPlural();
 		let postNoun = [];
 		switch (definition['conjugated'][2][1]) {
 			case 'me':
-				plural = true;
 				determiner = ['two'];
 				break;
 			case 'pxe':
-				plural = true;
 				determiner = ['three'];
 				break;
 			case 'ay':
 			case '(ay)':
-				plural = true;
 				determiner = [];
 				break;
 		}
 		switch (definition['conjugated'][2][0]) {
 			case 'fì':
-				determiner = ['this'];
+				determiner = [plural ? 'these' : 'this'];
 				break;
 			case 'tsa':
-				determiner = ['that'];
+				determiner = [plural ? 'those' : 'that'];
 				break;
 			case 'pe':
 				determiner = ['which'];
@@ -505,6 +562,8 @@ sentence_part -> n_clause_patientive {% (data) => ({'type': 'patientive', 'claus
 sentence_part -> n_clause_dative {% (data) => ({'type': 'dative', 'clause': data[0]}) %}
 sentence_part -> n_clause_genitive {% (data) => ({'type': 'genitive', 'clause': data[0]}) %}
 sentence_part -> n_clause_topical {% (data) => ({'type': 'topical', 'clause': data[0]}) %}
+
+sentence_part -> %adj {% (data) => ({'type': 'adjective', 'clause': new AdjectiveTree(data[0])}) %}
 
 sentence_part -> adverbial {% id %}
 

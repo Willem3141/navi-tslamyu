@@ -110,6 +110,8 @@ async function main() {
 				type = ['a_left', 'a_right'];
 			} else if (word['na\'vi'] === 'ma') {
 				type = 'ma';
+			} else if (word['na\'vi'] === 'ke' || word['na\'vi'] === 'rä\'ä') {
+				type = 'ke';
 			}
 		}
 		if (t === 'adv') {
@@ -130,11 +132,6 @@ async function main() {
 	let results = parser.results;
 	results.sort((a, b) => a.getPenalty() - b.getPenalty());
 	let correct = results[0].getErrors().length === 0;
-	if (results.length > 0 && correct) {
-		console.log("Sentence seems correct");
-	} else {
-		console.log("Sentence seems incorrect");
-	}
 	if (verbose) {
 		for (let i = 0; i < results.length; i++) {
 			let result = results[i];
@@ -142,7 +139,7 @@ async function main() {
 			outputTree(result);
 			console.log("(penalty: " + result.getPenalty() + ")");
 			for (let j = 0; j < result.getErrors().length; j++) {
-				console.log(result.getErrors()[j]);
+				error(result.getErrors()[j]);
 			}
 			console.log(" -> \"" + result.translate() + "\"");
 		}
@@ -155,7 +152,7 @@ async function main() {
 				break;
 			}
 			for (let j = 0; j < result.getErrors().length; j++) {
-				console.log(result.getErrors()[j]);
+				error(result.getErrors()[j]);
 			}
 			let translation = result.translate();
 			if (correct && translation !== lastTranslation) {
