@@ -283,16 +283,18 @@ class SentenceTree extends Tree {
 		if (this.verb) {
 			verb = getShortTranslation(this.verb).split(' ');
 
-			if (this.negation) {
-				verb = ['don\'t'].concat(verb);
-			}
-
 			if (verb[0] === "be") {
+				if (this.negation) {
+					verb = ['be', 'not'].concat(verb.splice(1));
+				}
 				verb[0] = subjectPlural ? "are" : "is";
 				if (pronouns.hasOwnProperty(subject[0])) {
 					verb[0] = pronouns[subject[0]][2];
 				}
 			} else {
+				if (this.negation) {
+					verb = ['do', 'not'].concat(verb);
+				}
 				let form = subjectPlural ? "VBP" : "VBZ";
 				if (pronouns.hasOwnProperty(subject[0])) {
 					form = pronouns[subject[0]][4];
