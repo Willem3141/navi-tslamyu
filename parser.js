@@ -120,6 +120,9 @@ async function main() {
 		if (t === 'adj') {
 			type = 'adj';
 		}
+		if (t === 'adp' || t === "adp:len") {
+			type = 'adp';
+		}
 		//if (type === '') {
 		//	throw new Error('tslamyu doesn\'t understand word type: ' + t);
 		//}

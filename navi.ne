@@ -470,6 +470,25 @@ class NounClauseTree extends Tree {
 	}
 }
 
+class AdpositionClauseTree extends Tree {
+
+	constructor(adposition, nounClause) {
+		super();
+		this.clause = adposition;
+		this.word = this.clause['value'];
+		this.translation = getTranslation(adposition);
+		this.nounClause = nounClause;
+		this.roles.push('noun');
+		this.children.push(nounClause);
+	}
+
+	translate() {
+		let translation = [getShortTranslation(this.clause)];
+		translation.push(this.nounClause.translate("object"));
+		return translation.join(' ');
+	}
+}
+
 class AdjectiveTree extends Tree {
 
 	constructor(clause) {
@@ -537,6 +556,8 @@ const adj_left = makeTester('adj_left');
 const adj_right = makeTester('adj_right');
 
 const adv = makeTester('adv');
+
+const adp = makeTester('adp');
 
 const a_left = makeTester('a_left');
 const a_right = makeTester('a_right');
@@ -607,6 +628,7 @@ sentence_part -> %adj {% (data) => ({'type': 'adjective', 'clause': new Adjectiv
 
 sentence_part -> adverbial {% id %}
 
+
 ### VERB CLAUSES ###
 
 v_clause -> negation:? verb {% (data) => ({
@@ -620,6 +642,7 @@ negation -> %ke {% processParticle %}
 verb -> %vin {% (data) => ({'type': 'vin', 'clause': data[0]}) %}
 verb -> %vtr {% (data) => ({'type': 'vtr', 'clause': data[0]}) %}
 verb -> %vcp {% (data) => ({'type': 'vcp', 'clause': data[0]}) %}
+
 
 ### NOUN CLAUSES ###
 
@@ -672,13 +695,22 @@ n_clause_topical ->
 	{% processNounClause %}
 
 
-### OTHERS ###
+### ADVERBIALS ###
 
 adverbial -> %adv {%
 	function (data) {
 		return {
 			'type': 'adverbial',
 			'clause': new AdverbialTree(data[0])
+		};
+	}
+%}
+
+adverbial -> %adp n_clause_subjective {%
+	function (data) {
+		return {
+			'type': 'adverbial',
+			'clause': new AdpositionClauseTree(data[0], data[1])
 		};
 	}
 %}
