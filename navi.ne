@@ -123,7 +123,8 @@ class SentenceTree extends Tree {
 						// TODO make sure this thing has <iv>
 						hasModal = true;
 						this.verbRest.push((part.type === 'vsi') ? part.siComplement : part.clause);
-						let newVerb = new VerbTree(part.clause);
+						let newVerb = new VerbTree((part.type === 'vsi') ?
+								part.siComplement : part.clause);
 						lastVerbSeen.children.push(newVerb);
 						lastVerbSeen.roles.push('dependent verb');
 						lastVerbSeen = newVerb;
@@ -138,7 +139,6 @@ class SentenceTree extends Tree {
 				}
 				this.verbType = part.type;
 				if (this.verbType === 'vsi') {
-					needToAddSi = true;
 					this.verbType = 'vin';
 				}
 			}
@@ -175,7 +175,7 @@ class SentenceTree extends Tree {
 					if (this.verb && this.verbType !== "vtr") {
 						this.error(1, "Agentive [" + part.clause.word +
 								"] cannot be used with intransitive verb [" +
-								this.verb['value'] + "]");
+								mainVerb['value'] + "]");
 					} else if (this.agentive) {
 						this.error(1, "The two agentives [" +
 								this.agentive.word +
@@ -273,9 +273,6 @@ class SentenceTree extends Tree {
 
 		if (this.verb) {
 			this.word = this.verb['value'];
-			if (needToAddSi) {
-				this.word += ' si';
-			}
 			this.translation = getTranslation(this.verb);
 		}
 
