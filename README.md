@@ -25,26 +25,32 @@ Only a very limited set of grammar features are supported at the moment:
     * intransitive usage of transitive verb
 * copula verbs
     * with adjectives or nouns as the predicate
+* modal verbs (to do: require **<iv>** in the dependent verb)
+* **si** verbs
 * adjectives
     * predicative usage
 * adverbials
     * adverbs
     * dative
+    * adpositions
+* negation (**ke** / **rä'ä**)
 
 Anything else is unsupported for now, including:
 
 * adjectives
     * attributive usage
 * adverbials
-    * adpositions
+    * adpositions attached to a noun
     * vocatives
-    * topical
-* **si** verbs
-* modal verbs (requiring **<iv>** in the dependent verb)
-* negation (**ke** / **rä'ä**)
+* topical
 * numbers
 * **f**-words
+    * also **taluna**, **krra**, etc.
 * interjections (**kaltxì**, **wiya**)
+* **san** / **sìk**
+* **fte** and **tsnì** phrases
+* verb infixes
+    * especially **<eyk>** and **<äp>** don't change transitivity yet
 
 Many of these can only be implemented after they are supported in navi-reykunyu first.
 
