@@ -64,6 +64,7 @@ async function main() {
 	try {
 		parser.feed(tokens);
 	} catch (e) {
+		throw e;
 		error("Parse failed at \x1b[1m" + e['token']['value']['value'] +
 			"\x1b[0m (word " + (e['offset'] + 1) + ")");
 		return;
@@ -104,6 +105,10 @@ async function main() {
 		if (t === 'v:cp') {
 			// copula verbs can also be used intransitively
 			type = ['vin', 'vcp'];
+		}
+		if (t === 'v:m') {
+			// modal verbs can also be used intransitively
+			type = ['vin', 'vm'];
 		}
 		if (t === 'part') {
 			if (word['na\'vi'] === 'a') {

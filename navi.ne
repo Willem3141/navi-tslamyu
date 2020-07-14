@@ -94,6 +94,7 @@ class SentenceTree extends Tree {
 
 		this.verb = null;
 		this.verbType = "vcp";  // by default, assume omitted "lu"
+		this.verbRest = [];
 
 		this.subjective = null;
 		this.predicate = null;
@@ -105,15 +106,25 @@ class SentenceTree extends Tree {
 		this.datives = [];
 
 		// first find the verb and its type
+		let lastVerbSeen = this;  // where we'll attach more verbs
 		for (let i = 0; i < clause.length; i++) {
 			let part = clause[i];
 			if (part['type'] === 'vin' || part['type'] === 'vtr' ||
-					part['type'] === 'vcp') {
+					part['type'] === 'vcp' || part['type'] === 'vm') {
 				this.verbType = part['type'];
 				if (this.verb) {
-					this.error(1, "The two verbs [" + this.verb['value'] +
-							"] and [" +
-							part['clause']['value'] + "] cannot be in the same clause");
+					if (!this.verbType === "vm") {
+						this.error(1, "The two verbs [" + this.verb['value'] +
+								"] and [" +
+								part['clause']['value'] + "] cannot be in the same clause");
+					} else {
+						// TODO make sure this thing has <iv>
+						this.verbRest.push(part['clause']);
+						let newVerb = new VerbTree(part['clause']);
+						lastVerbSeen.children.push(newVerb);
+						lastVerbSeen.roles.push('dependent verb');
+						lastVerbSeen = newVerb;
+					}
 				} else {
 					this.verb = part['clause'];
 					if (part['negation']) {
@@ -129,7 +140,7 @@ class SentenceTree extends Tree {
 		for (let i = 0; i < clause.length; i++) {
 			let part = clause[i];
 			if (part['type'] !== 'vin' && part['type'] !== 'vtr' &&
-					part['type'] !== 'vcp') {
+					part['type'] !== 'vcp' && part['type'] !== 'vm') {
 				let role = null;
 				if (part['type'] === 'subjective') {
 					if (!this.subjective &&
@@ -312,6 +323,10 @@ class SentenceTree extends Tree {
 			}
 		}
 
+		for (let i = 0; i < this.verbRest.length; i++) {
+			verb.push(getShortTranslation(this.verbRest[i]));
+		}
+
 		let adverbials = [];
 		if (this.adverbials) {
 			for (let i = 0; i < this.adverbials.length; i++) {
@@ -489,6 +504,21 @@ class AdpositionClauseTree extends Tree {
 	}
 }
 
+class VerbTree extends Tree {
+
+	constructor(clause) {
+		super();
+		this.clause = clause;
+		this.word = this.clause['value'];
+		this.translation = getTranslation(this.clause);
+	}
+
+	translate() {
+		let translation = getShortTranslation(this.clause);
+		return translation;
+	}
+}
+
 class AdjectiveTree extends Tree {
 
 	constructor(clause) {
@@ -550,6 +580,7 @@ const n_topical = makeTester('n_topical');
 const vin = makeTester('vin');
 const vtr = makeTester('vtr');
 const vcp = makeTester('vcp');
+const vm = makeTester('vm');
 
 const adj = makeTester('adj');
 const adj_left = makeTester('adj_left');
@@ -642,6 +673,7 @@ negation -> %ke {% processParticle %}
 verb -> %vin {% (data) => ({'type': 'vin', 'clause': data[0]}) %}
 verb -> %vtr {% (data) => ({'type': 'vtr', 'clause': data[0]}) %}
 verb -> %vcp {% (data) => ({'type': 'vcp', 'clause': data[0]}) %}
+verb -> %vm {% (data) => ({'type': 'vm', 'clause': data[0]}) %}
 
 
 ### NOUN CLAUSES ###
