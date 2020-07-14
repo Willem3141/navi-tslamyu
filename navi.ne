@@ -107,6 +107,7 @@ class SentenceTree extends Tree {
 
 		// first find the verb and its type
 		let lastVerbSeen = this;  // where we'll attach more verbs
+		let hasModal = false;
 		for (let i = 0; i < clause.length; i++) {
 			let part = clause[i];
 			if (part['type'] === 'vin' || part['type'] === 'vtr' ||
@@ -118,6 +119,7 @@ class SentenceTree extends Tree {
 								part['clause']['value'] + "] cannot be in the same clause");
 					} else {
 						// TODO make sure this thing has <iv>
+						hasModal = true;
 						this.verbRest.push(part['clause']);
 						let newVerb = new VerbTree(part['clause']);
 						lastVerbSeen.children.push(newVerb);
@@ -163,33 +165,45 @@ class SentenceTree extends Tree {
 					}
 				}
 				if (part['type'] === 'agentive') {
-					if (!this.agentive && (!this.verb || this.verbType === "vtr")) {
-						this.agentive = part['clause'];
-						role = 'agentive';
-					} else if (this.verbType === "vtr") {
+					if (this.verb && this.verbType !== "vtr") {
+						this.error(1, "Agentive [" + part.clause.word +
+								"] cannot be used with intransitive verb [" +
+								this.verb['value'] + "]");
+					} else if (this.agentive) {
 						this.error(1, "The two agentives [" +
 								this.agentive.word +
 								"] and [" + part.clause.word +
 								"] cannot be in the same clause");
-					} else if (this.verb) {
-						this.error(1, "Agentive [" + part.clause.word +
-								"] cannot be used with intransitive verb [" +
-								this.verb['value'] + "]");
+					} else if (this.subjective) {
+						this.error(1, "The agentive [" +
+								part.clause.word +
+								"] cannot go together with the subjective [" +
+								this.subjective.word +
+								"] in the same clause");
+					} else {
+						this.agentive = part['clause'];
+						role = 'agentive';
 					}
 				}
 				if (part['type'] === 'patientive') {
-					if (!this.patientive && (!this.verb || this.verbType === "vtr")) {
-						this.patientive = part['clause'];
-						role = 'patientive';
-					} else if (this.verbType === "vtr") {
+					if (this.verb && this.verbType !== "vtr") {
+						this.error(1, "Patientive [" + part.clause.word +
+								"] cannot be used with intransitive verb [" +
+								this.verb['value'] + "]");
+					} else if (this.patientive) {
 						this.error(1, "The two patientives [" +
 								this.patientive.word +
 								"] and [" + part.clause.word +
 								"] cannot be in the same clause");
-					} else if (this.verb) {
-						this.error(1, "Patientive [" + part.clause.word +
-								"] cannot be used with intransitive verb [" +
-								this.verb['value'] + "]");
+					} else if (this.subjective && !hasModal) {
+						this.error(1, "The patientive [" +
+								part.clause.word +
+								"] cannot go together with the subjective [" +
+								this.subjective.word +
+								"] in the same clause");
+					} else {
+						this.patientive = part['clause'];
+						role = 'patientive';
 					}
 				}
 				if (part['type'] === 'dative') {

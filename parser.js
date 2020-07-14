@@ -99,16 +99,15 @@ async function main() {
 			type = 'vin';
 		}
 		if (t === 'v:tr') {
-			// transitive verbs can also be used intransitively
-			type = ['vin', 'vtr'];
+			type = 'vtr';
 		}
 		if (t === 'v:cp') {
 			// copula verbs can also be used intransitively
-			type = ['vin', 'vcp'];
+			type = 'vcp';
 		}
 		if (t === 'v:m') {
 			// modal verbs can also be used intransitively
-			type = ['vin', 'vm'];
+			type = 'vm';
 		}
 		if (t === 'part') {
 			if (word['na\'vi'] === 'a') {
