@@ -237,8 +237,15 @@ class SentenceTree extends Tree {
 				}
 				
 				if (role) {
-					this.children.push(part['clause']);
-					this.roles.push(role);
+					// special case: put most elements on the main verb
+					if ((role !== 'subjective' && role !== 'agentive')
+							&& this.verbRest.length > 0) {
+						lastVerbSeen.children.push(part['clause']);
+						lastVerbSeen.roles.push(role);
+					} else {
+						this.children.push(part['clause']);
+						this.roles.push(role);
+					}
 				}
 			}
 		}
