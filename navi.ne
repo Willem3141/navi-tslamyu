@@ -111,7 +111,6 @@ class SentenceTree extends Tree {
 			let part = clause[i];
 			if (part['type'] === 'vin' || part['type'] === 'vtr' ||
 					part['type'] === 'vcp' || part['type'] === 'vm') {
-				this.verbType = part['type'];
 				if (this.verb) {
 					if (this.verbType !== "vm") {
 						this.error(1, "The two verbs [" + this.verb['value'] +
@@ -133,6 +132,7 @@ class SentenceTree extends Tree {
 						this.roles.push('negation');
 					}
 				}
+				this.verbType = part['type'];
 			}
 		}
 
@@ -304,7 +304,11 @@ class SentenceTree extends Tree {
 				}
 			} else {
 				if (this.negation) {
-					verb = ['do', 'not'].concat(verb);
+					if (verb[0] === "can" || verb[0] === "will") {
+						verb = [verb[0], 'not'].concat(verb.splice(1));
+					} else {
+						verb = ['do', 'not'].concat(verb);
+					}
 				}
 				let form = subjectPlural ? "VBP" : "VBZ";
 				if (pronouns.hasOwnProperty(subject[0])) {
