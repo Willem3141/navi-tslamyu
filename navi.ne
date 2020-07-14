@@ -108,33 +108,39 @@ class SentenceTree extends Tree {
 		// first find the verb and its type
 		let lastVerbSeen = this;  // where we'll attach more verbs
 		let hasModal = false;
+		let needToAddSi = false;
 		for (let i = 0; i < clause.length; i++) {
 			let part = clause[i];
-			if (part['type'] === 'vin' || part['type'] === 'vtr' ||
-					part['type'] === 'vcp' || part['type'] === 'vm') {
+			if (part.type === 'vin' || part.type === 'vtr' ||
+					part.type === 'vcp' || part.type === 'vm' ||
+					part.type === 'vsi') {
 				if (this.verb) {
 					if (this.verbType !== "vm") {
-						this.error(1, "The two verbs [" + this.verb['value'] +
+						this.error(1, "The two verbs [" + this.verb.value +
 								"] and [" +
-								part['clause']['value'] + "] cannot be in the same clause");
+								part.clause.value + "] cannot be in the same clause");
 					} else {
 						// TODO make sure this thing has <iv>
 						hasModal = true;
-						this.verbRest.push(part['clause']);
-						let newVerb = new VerbTree(part['clause']);
+						this.verbRest.push((part.type === 'vsi') ? part.siComplement : part.clause);
+						let newVerb = new VerbTree(part.clause);
 						lastVerbSeen.children.push(newVerb);
 						lastVerbSeen.roles.push('dependent verb');
 						lastVerbSeen = newVerb;
 					}
 				} else {
-					this.verb = part['clause'];
-					if (part['negation']) {
-						this.negation = part['negation'];
+					this.verb = (part.type === 'vsi') ? part.siComplement : part.clause;
+					if (part.negation) {
+						this.negation = part.negation;
 						this.children.push(this.negation);
 						this.roles.push('negation');
 					}
 				}
-				this.verbType = part['type'];
+				this.verbType = part.type;
+				if (this.verbType === 'vsi') {
+					needToAddSi = true;
+					this.verbType = 'vin';
+				}
 			}
 		}
 
@@ -142,7 +148,8 @@ class SentenceTree extends Tree {
 		for (let i = 0; i < clause.length; i++) {
 			let part = clause[i];
 			if (part['type'] !== 'vin' && part['type'] !== 'vtr' &&
-					part['type'] !== 'vcp' && part['type'] !== 'vm') {
+					part['type'] !== 'vcp' && part['type'] !== 'vm' &&
+					part['type'] !== 'vsi') {
 				let role = null;
 				if (part['type'] === 'subjective') {
 					if (!this.subjective &&
@@ -266,6 +273,9 @@ class SentenceTree extends Tree {
 
 		if (this.verb) {
 			this.word = this.verb['value'];
+			if (needToAddSi) {
+				this.word += ' si';
+			}
 			this.translation = getTranslation(this.verb);
 		}
 
@@ -603,11 +613,13 @@ const n_patientive = makeTester('n_patientive');
 const n_dative = makeTester('n_dative');
 const n_genitive = makeTester('n_genitive');
 const n_topical = makeTester('n_topical');
+const nsi = makeTester('nsi');
 
 const vin = makeTester('vin');
 const vtr = makeTester('vtr');
 const vcp = makeTester('vcp');
 const vm = makeTester('vm');
+const vsi = makeTester('vsi');
 
 const adj = makeTester('adj');
 const adj_left = makeTester('adj_left');
@@ -692,6 +704,7 @@ sentence_part -> adverbial {% id %}
 v_clause -> negation:? verb {% (data) => ({
 	'type': data[1]['type'],
 	'clause': data[1]['clause'],
+	'siComplement': data[1]['siComplement'],
 	'negation': data[0]
 }) %}
 
@@ -701,6 +714,7 @@ verb -> %vin {% (data) => ({'type': 'vin', 'clause': data[0]}) %}
 verb -> %vtr {% (data) => ({'type': 'vtr', 'clause': data[0]}) %}
 verb -> %vcp {% (data) => ({'type': 'vcp', 'clause': data[0]}) %}
 verb -> %vm {% (data) => ({'type': 'vm', 'clause': data[0]}) %}
+verb -> %nsi %vsi {% (data) => ({'type': 'vsi', 'clause': data[1], 'siComplement': data[0]}) %}
 
 
 ### NOUN CLAUSES ###
@@ -752,6 +766,9 @@ n_clause_topical ->
 	(%a_right sentence):?
 	(n_clause_genitive):?
 	{% processNounClause %}
+
+nsi ->
+	%n_subjective {% id %}
 
 
 ### ADVERBIALS ###

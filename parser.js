@@ -95,6 +95,9 @@ async function main() {
 					break;
 			}
 		}
+		if (t === 'n:si') {
+			type = 'nsi';
+		}
 		if (t === 'v:in') {
 			type = 'vin';
 		}
@@ -102,12 +105,13 @@ async function main() {
 			type = 'vtr';
 		}
 		if (t === 'v:cp') {
-			// copula verbs can also be used intransitively
 			type = 'vcp';
 		}
 		if (t === 'v:m') {
-			// modal verbs can also be used intransitively
 			type = 'vm';
+		}
+		if (t === 'v:si') {
+			type = 'vsi';
 		}
 		if (t === 'part') {
 			if (word['na\'vi'] === 'a') {
