@@ -113,7 +113,7 @@ class SentenceTree extends Tree {
 					part['type'] === 'vcp' || part['type'] === 'vm') {
 				this.verbType = part['type'];
 				if (this.verb) {
-					if (!this.verbType === "vm") {
+					if (this.verbType !== "vm") {
 						this.error(1, "The two verbs [" + this.verb['value'] +
 								"] and [" +
 								part['clause']['value'] + "] cannot be in the same clause");
