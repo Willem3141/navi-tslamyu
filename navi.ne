@@ -235,8 +235,11 @@ class SentenceTree extends Tree {
 					this.adverbials.push(part['clause']);
 					role = 'adverbial';
 				}
-				this.children.push(part['clause']);
-				this.roles.push(role);
+				
+				if (role) {
+					this.children.push(part['clause']);
+					this.roles.push(role);
+				}
 			}
 		}
 
