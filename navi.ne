@@ -144,8 +144,7 @@ class SentenceTree extends Tree {
 				let role = null;
 				if (part['type'] === 'subjective') {
 					if (!this.subjective &&
-							(!this.verb || this.verbType === "vin" ||
-							this.verbType === "vcp")) {
+							(!this.verbType !== "vtr")) {
 						this.subjective = part['clause'];
 						role = 'subjective';
 					} else if (!this.predicate && this.verbType === "vcp") {
