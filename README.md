@@ -29,6 +29,7 @@ Only a very limited set of grammar features are supported at the moment:
 * **si** verbs
 * adjectives
     * predicative usage
+    * attributive usage
 * adverbials
     * adverbs
     * dative
@@ -37,8 +38,6 @@ Only a very limited set of grammar features are supported at the moment:
 
 Anything else is unsupported for now, including:
 
-* adjectives
-    * attributive usage
 * adverbials
     * adpositions attached to a noun
     * vocatives

@@ -521,6 +521,9 @@ class NounClauseTree extends Tree {
 			for (let i = 0; i < this.adjectives.length; i++) {
 				adjectives = adjectives.concat([this.adjectives[i].translate()]);
 			}
+			if (adjectives[0] === adjectives[1]) {
+				adjectives[0] = "very";
+			}
 		}
 
 		if (this.subclauses) {
