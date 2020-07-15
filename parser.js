@@ -126,7 +126,13 @@ async function main() {
 			type = 'adv';
 		}
 		if (t === 'adj') {
-			type = 'adj';
+			if (word['conjugated'][2] === "prenoun") {
+				type = 'adj_left';
+			} else if (word['conjugated'][2] === "postnoun") {
+				type = 'adj_right';
+			} else {
+				type = 'adj';
+			}
 		}
 		if (t === 'adp' || t === "adp:len") {
 			type = 'adp';

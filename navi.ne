@@ -386,11 +386,20 @@ class NounClauseTree extends Tree {
 		this.word = this.clause['noun']['value'];
 		this.translation = getTranslation(this.clause['noun']);
 
+		if (this.clause['adjectives']) {
+			this.adjectives = [];
+			for (let i = 0; i < this.clause['adjectives'].length; i++) {
+				let adjective = this.clause['adjectives'][i];
+				this.adjectives.push(adjective);
+				this.children.push(adjective);
+				this.roles.push('adjective');
+			}
+		}
+
 		if (this.clause['subclauses']) {
 			this.subclauses = [];
 			for (let i = 0; i < this.clause['subclauses'].length; i++) {
-				let sub = this.clause['subclauses'][i];
-				let subclause = sub;
+				let subclause = this.clause['subclauses'][i];
 				this.subclauses.push(subclause);
 				this.children.push(subclause);
 				this.roles.push('subclause');
@@ -398,8 +407,7 @@ class NounClauseTree extends Tree {
 		}
 		if (this.clause['possessives']) {
 			for (let i = 0; i < this.clause['possessives'].length; i++) {
-				let poss = this.clause['possessives'][i];
-				this.possessive = poss;
+				this.possessive = this.clause['possessives'][i];
 				this.children.push(this.possessive);
 				this.roles.push('possessive');
 			}
@@ -416,6 +424,7 @@ class NounClauseTree extends Tree {
 		let noun = getShortTranslation(this.clause['noun']);
 		let determiner = ["a/the"];
 		let possessor = [];
+		let adjectives = [];
 		let subclauses = [];
 		let definition = this.clause['noun']['definition'][0];
 
@@ -508,13 +517,19 @@ class NounClauseTree extends Tree {
 			}
 		}
 
+		if (this.adjectives) {
+			for (let i = 0; i < this.adjectives.length; i++) {
+				adjectives = adjectives.concat([this.adjectives[i].translate()]);
+			}
+		}
+
 		if (this.subclauses) {
 			for (let i = 0; i < this.subclauses.length; i++) {
 				subclauses = subclauses.concat(["that", this.subclauses[i].translate()]);
 			}
 		}
 
-		return determiner.concat([noun]).concat(postNoun)
+		return determiner.concat(adjectives).concat([noun]).concat(postNoun)
 				.concat(possessor).concat(subclauses).join(' ');
 	}
 }
@@ -641,10 +656,10 @@ let processNounClause = function (data) {
 	};
 	let adjs = [];
 	if (data[2]) {
-		adjs = adjs.concat([data[2]]);
+		adjs = adjs.concat([new AdjectiveTree(data[2])]);
 	}
 	if (data[4]) {
-		adjs = adjs.concat([data[4]]);
+		adjs = adjs.concat([new AdjectiveTree(data[4])]);
 	}
 	if (adjs.length > 0) {
 		result['adjectives'] = adjs;
