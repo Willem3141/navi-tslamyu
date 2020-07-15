@@ -98,7 +98,7 @@ async function main() {
 		if (t === 'n:si') {
 			type = 'nsi';
 		}
-		if (t === 'v:in') {
+		if (t === 'v:in' || t === "v:?") {
 			type = 'vin';
 		}
 		if (t === 'v:tr') {
