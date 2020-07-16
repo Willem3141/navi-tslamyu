@@ -6,7 +6,7 @@ It uses Reykunyu's API (at https://reykunyu.wimiso.nl) to parse individual words
 
 * Install [nearley](https://github.com/kach/nearley): `sudo npm install -g nearley`
 * Compile the grammar: `nearleyc navi.ne -o navi.js`
-* Parse a sentence: `node parser.js "<sentence to parse>"`
+* Parse a sentence: `node runParser.js "<sentence to parse>"` (or use it programmatically: `tslamyu.doParse(...)`)
 
 ## Supported grammar features
 
