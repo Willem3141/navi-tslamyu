@@ -96,7 +96,7 @@ async function main() {
 			}
 		}
 		if (t === 'n:si') {
-			type = 'nsi';
+			type = 'vsi_comp';
 		}
 		if (t === 'v:in' || t === "v:?") {
 			type = 'vin';

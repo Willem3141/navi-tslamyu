@@ -5,15 +5,28 @@
 
 const Inflectors = require("en-inflectors").Inflectors;
 
-function getTranslation(word) {
+function getDefinitionId(word, type) {
+	for (let i = 0; i < word['definition'].length; i++) {
+		if (word['types'][i].indexOf(type) === 0) {
+			return i;
+		}
+	}
+	console.log('Warning: couldn\'t find type "' + type + '" for word "' + word['value'] + '"');
+	return 0;
+}
+
+function getTranslation(word, type) {
+	let def_id = getDefinitionId(word, type);
 	if (word['definition']) {
-		return word['definition'][0]['translations'][0]['en'];
+		return word['definition'][def_id]['translations'][0]['en'];
 	}
 	return null;
 }
 
-function getShortTranslation(word) {
-	let result = word['definition'][0];
+function getShortTranslation(word, type) {
+
+	let def_id = getDefinitionId(word, type);
+	let result = word['definition'][def_id];
 
 	if (result["short_translation"]) {
 		return result["short_translation"];
@@ -175,7 +188,7 @@ class SentenceTree extends Tree {
 					if (this.verb && this.verbType !== "vtr") {
 						this.error(1, "Agentive [" + part.clause.word +
 								"] cannot be used with intransitive verb [" +
-								mainVerb['value'] + "]");
+								this.verb['value'] + "]");
 					} else if (this.agentive) {
 						this.error(1, "The two agentives [" +
 								this.agentive.word +
@@ -273,7 +286,7 @@ class SentenceTree extends Tree {
 
 		if (this.verb) {
 			this.word = this.verb['value'];
-			this.translation = getTranslation(this.verb);
+			this.translation = getTranslation(this.verb, "v");
 		}
 
 		// Special penalties:
@@ -322,7 +335,7 @@ class SentenceTree extends Tree {
 
 		let verb = ["(verb omitted)"];
 		if (this.verb) {
-			verb = getShortTranslation(this.verb).split(' ');
+			verb = getShortTranslation(this.verb, "v").split(' ');
 
 			if (verb[0] === "be") {
 				if (this.negation) {
@@ -358,7 +371,7 @@ class SentenceTree extends Tree {
 		}
 
 		for (let i = 0; i < this.verbRest.length; i++) {
-			verb.push(getShortTranslation(this.verbRest[i]));
+			verb.push(getShortTranslation(this.verbRest[i], "v"));
 		}
 
 		let adverbials = [];
@@ -384,7 +397,7 @@ class NounClauseTree extends Tree {
 		super();
 		this.clause = clause;
 		this.word = this.clause['noun']['value'];
-		this.translation = getTranslation(this.clause['noun']);
+		this.translation = getTranslation(this.clause['noun'], 'n_');
 
 		if (this.clause['adjectives']) {
 			this.adjectives = [];
@@ -421,7 +434,7 @@ class NounClauseTree extends Tree {
 	}
 
 	translate(nounCase) {
-		let noun = getShortTranslation(this.clause['noun']);
+		let noun = getShortTranslation(this.clause['noun'], "n_");
 		let determiner = ["a/the"];
 		let possessor = [];
 		let adjectives = [];
@@ -543,14 +556,14 @@ class AdpositionClauseTree extends Tree {
 		super();
 		this.clause = adposition;
 		this.word = this.clause['value'];
-		this.translation = getTranslation(adposition);
+		this.translation = getTranslation(adposition, "adp");
 		this.nounClause = nounClause;
 		this.roles.push('noun');
 		this.children.push(nounClause);
 	}
 
 	translate() {
-		let translation = [getShortTranslation(this.clause)];
+		let translation = [getShortTranslation(this.clause, "adp")];
 		translation.push(this.nounClause.translate("object"));
 		return translation.join(' ');
 	}
@@ -562,11 +575,11 @@ class VerbTree extends Tree {
 		super();
 		this.clause = clause;
 		this.word = this.clause['value'];
-		this.translation = getTranslation(this.clause);
+		this.translation = getTranslation(this.clause, "v");
 	}
 
 	translate() {
-		let translation = getShortTranslation(this.clause);
+		let translation = getShortTranslation(this.clause, "v");
 		return translation;
 	}
 }
@@ -577,11 +590,11 @@ class AdjectiveTree extends Tree {
 		super();
 		this.clause = clause;
 		this.word = this.clause['value'];
-		this.translation = getTranslation(this.clause);
+		this.translation = getTranslation(this.clause, "adj");
 	}
 
 	translate() {
-		let translation = getShortTranslation(this.clause);
+		let translation = getShortTranslation(this.clause, "adj");
 		return translation;
 	}
 }
@@ -592,11 +605,11 @@ class AdverbialTree extends Tree {
 		super();
 		this.clause = clause;
 		this.word = this.clause['value'];
-		this.translation = getTranslation(this.clause);
+		this.translation = getTranslation(this.clause, "adv");
 	}
 
 	translate() {
-		let translation = getShortTranslation(this.clause);
+		let translation = getShortTranslation(this.clause, "adv");
 		return translation;
 	}
 }
@@ -607,11 +620,11 @@ class ParticleTree extends Tree {
 		super();
 		this.clause = clause;
 		this.word = this.clause['value'];
-		this.translation = getTranslation(this.clause);
+		this.translation = getTranslation(this.clause, "part");
 	}
 
 	translate() {
-		let translation = getShortTranslation(this.clause);
+		let translation = getShortTranslation(this.clause, "part");
 		return translation;
 	}
 }
@@ -628,7 +641,7 @@ const n_patientive = makeTester('n_patientive');
 const n_dative = makeTester('n_dative');
 const n_genitive = makeTester('n_genitive');
 const n_topical = makeTester('n_topical');
-const nsi = makeTester('nsi');
+const vsi_comp = makeTester('vsi_comp');
 
 const vin = makeTester('vin');
 const vtr = makeTester('vtr');
@@ -729,7 +742,7 @@ verb -> %vin {% (data) => ({'type': 'vin', 'clause': data[0]}) %}
 verb -> %vtr {% (data) => ({'type': 'vtr', 'clause': data[0]}) %}
 verb -> %vcp {% (data) => ({'type': 'vcp', 'clause': data[0]}) %}
 verb -> %vm {% (data) => ({'type': 'vm', 'clause': data[0]}) %}
-verb -> %nsi %vsi {% (data) => ({'type': 'vsi', 'clause': data[1], 'siComplement': data[0]}) %}
+verb -> %vsi_comp %vsi {% (data) => ({'type': 'vsi', 'clause': data[1], 'siComplement': data[0]}) %}
 
 
 ### NOUN CLAUSES ###
@@ -781,9 +794,6 @@ n_clause_topical ->
 	(%a_right sentence):?
 	(n_clause_genitive):?
 	{% processNounClause %}
-
-nsi ->
-	%n_subjective {% id %}
 
 
 ### ADVERBIALS ###
