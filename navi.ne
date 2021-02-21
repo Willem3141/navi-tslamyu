@@ -429,7 +429,7 @@ class NounClauseTree extends Tree {
 
 	isPlural() {
 		let definition = this.clause['noun']['definition'][0];
-		let prefix = definition['conjugated'][0]["affixes"][1];
+		let prefix = definition['conjugated'][0]['conjugation']['affixes'][1];
 		return prefix !== "";
 	}
 
@@ -466,7 +466,7 @@ class NounClauseTree extends Tree {
 		// handle affixes
 		let plural = this.isPlural();
 		let postNoun = [];
-		switch (definition['conjugated'][0]["affixes"][1]) {
+		switch (definition['conjugated'][0]['conjugation']['affixes'][1]) {
 			case 'me':
 				determiner = ['two'];
 				break;
@@ -478,7 +478,7 @@ class NounClauseTree extends Tree {
 				determiner = [];
 				break;
 		}
-		switch (definition['conjugated'][0]["affixes"][0]) {
+		switch (definition['conjugated'][0]['conjugation']['affixes'][0]) {
 			case 'fì':
 				determiner = [plural ? 'these' : 'this'];
 				break;
@@ -492,7 +492,7 @@ class NounClauseTree extends Tree {
 				determiner = ['every'];
 				break;
 		}
-		switch (definition['conjugated'][0]["affixes"][4]) {
+		switch (definition['conjugated'][0]['conjugation']['affixes'][4]) {
 			case 'pe':
 				determiner = ['which'];
 				break;
@@ -500,7 +500,7 @@ class NounClauseTree extends Tree {
 				determiner = ['some'];
 				break;
 		}
-		switch (definition['conjugated'][0]["affixes"][3]) {
+		switch (definition['conjugated'][0]['conjugation']['affixes'][3]) {
 			case 'tsyìp':
 				noun = "little " + noun;
 				break;
@@ -509,7 +509,7 @@ class NounClauseTree extends Tree {
 				noun = 'state';
 				break;
 		}
-		switch (definition['conjugated'][0]["affixes"][2]) {
+		switch (definition['conjugated'][0]['conjugation']['affixes'][2]) {
 			case 'fne':
 				postNoun = ['of ' + noun];
 				noun = 'type';

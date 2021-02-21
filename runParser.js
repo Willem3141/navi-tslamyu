@@ -19,6 +19,14 @@ async function main() {
 	}
 	results = tslamyu.doParse(responses, verbose);
 
+	if (results['lexingErrors'].length) {
+		for (let e of results['lexingErrors']) {
+			error(e);
+		}
+		console.log('');
+	}
+	results = results['results'];
+
 	if (verbose) {
 		console.log('\x1b[1m\x1b[34mParse results:\x1b[0m ' + results.length + ' possible parse tree(s) found');
 	}
