@@ -10,14 +10,15 @@ function doParse(responses, verbose = false) {
 	const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 
 	let tokens = [];
+	let lexingErrors = [];
 
 	for (let i = 0; i < responses.length; i++) {
 		let response = responses[i];
 		let token = {};
 		token['value'] = response['tìpawm'];
 		if (response['sì\'eyng'].length === 0) {
-			error("Word \x1b[1m" + token['value'] + "\x1b[0m not recognized");
-			return;
+			lexingErrors.push("Word [" + token['value'] + "] not recognized; ignoring it");
+			continue;
 		}
 
 		let types = [];
@@ -34,8 +35,8 @@ function doParse(responses, verbose = false) {
 			}
 		}
 		if (types.length === 0) {
-			error("Word \x1b[1m" + token['value'] + "\x1b[0m has no valid types");
-			return;
+			lexingErrors.push("Word [" + token['value'] + "] has a type that the grammar analyzer doesn't understand yet; ignoring it");
+			continue;
 		}
 
 		token['types'] = types;
@@ -54,22 +55,23 @@ function doParse(responses, verbose = false) {
 	try {
 		parser.feed(tokens);
 	} catch (e) {
-		throw "Parse failed at [" + e['token']['value']['value'] +
-			"] (word " + (e['offset'] + 1) + ")";
+		lexingErrors.push("Parse failed at [" + e['token']['value']['value'] +
+			"] (word " + (e['offset'] + 1) + ")");
+		return {'lexingErrors': lexingErrors};
 	}
 
 	//console.log(util.inspect(parser.results, false, null, true));
 
 	let results = parser.results;
 	results.sort((a, b) => a.getPenalty() - b.getPenalty());
-	return results;
+	return {'lexingErrors': lexingErrors, 'results': results};
 }
 
 function getGrammarTypeOf(word) {
 	let t = word['type'];
 	let type = null;
 	if (t === 'n' || t === 'n:pr' || t === 'pn') {
-		let suffix = word['conjugated'][2][5];
+		let suffix = word['conjugated'][0]["conjugation"]["affixes"][5];
 		switch (suffix) {
 			case '':
 				type = 'n_subjective'; break;
@@ -119,9 +121,9 @@ function getGrammarTypeOf(word) {
 		type = 'adv';
 	}
 	if (t === 'adj') {
-		if (word['conjugated'][2] === "prenoun") {
+		if (word['conjugated'][0]["conjugation"]["form"] === "prenoun") {
 			type = 'adj_left';
-		} else if (word['conjugated'][2] === "postnoun") {
+		} else if (word['conjugated'][0]["conjugation"]["form"] === "postnoun") {
 			type = 'adj_right';
 		} else {
 			type = 'adj';
