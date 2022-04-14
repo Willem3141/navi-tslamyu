@@ -63,7 +63,7 @@ async function main() {
 }
 
 async function getResponsesFor(query) {
-	const response = await fetch('https://reykunyu.wimiso.nl/api/fwew?tìpawm=' + query)
+	const response = await fetch('http://localhost:3000/api/fwew?tìpawm=' + query)
 		.then(response => response.json())
 		.catch(error => {
 			throw error;

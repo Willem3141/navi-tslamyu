@@ -121,7 +121,6 @@ class SentenceTree extends Tree {
 		// first find the verb and its type
 		let lastVerbSeen = this;  // where we'll attach more verbs
 		let hasModal = false;
-		let needToAddSi = false;
 		for (let i = 0; i < clause.length; i++) {
 			let part = clause[i];
 			if (part.type === 'vin' || part.type === 'vtr' ||
@@ -269,7 +268,7 @@ class SentenceTree extends Tree {
 					this.adverbials.push(part['clause']);
 					role = 'adverbial';
 				}
-				
+
 				if (role) {
 					// special case: put most elements on the main verb
 					if ((role !== 'subjective' && role !== 'agentive')
@@ -307,7 +306,7 @@ class SentenceTree extends Tree {
 	translate() {
 
 		let subject = [];
-		let subjectPlural = false;
+		let subjectPlural = true;
 		if (this.subjective) {
 			subject = [this.subjective.translate()];
 			subjectPlural = this.subjective.isPlural();
@@ -317,9 +316,9 @@ class SentenceTree extends Tree {
 			subjectPlural = this.agentive.isPlural();
 		}
 
-		if (subject.length === 0) {
-			subject = ['(something)'];
-		}
+		//if (subject.length === 0) {
+		//	subject = ['(something)'];
+		//}
 
 		let object = [];
 		if (this.patientive) {
@@ -333,7 +332,8 @@ class SentenceTree extends Tree {
 			}
 		}
 
-		let verb = ["(verb omitted)"];
+		//let verb = ["(verb omitted)"];
+		let verb = [];
 		if (this.verb) {
 			verb = getShortTranslation(this.verb, "v").split(' ');
 
@@ -435,7 +435,8 @@ class NounClauseTree extends Tree {
 
 	translate(nounCase) {
 		let noun = getShortTranslation(this.clause['noun'], "n_");
-		let determiner = ["a/the"];
+		//let determiner = ["a/the"];
+		let determiner = [];
 		let possessor = [];
 		let adjectives = [];
 		let subclauses = [];
@@ -641,6 +642,7 @@ const n_patientive = makeTester('n_patientive');
 const n_dative = makeTester('n_dative');
 const n_genitive = makeTester('n_genitive');
 const n_topical = makeTester('n_topical');
+const n_adposition = makeTester('n_adposition');
 const vsi_comp = makeTester('vsi_comp');
 
 const vin = makeTester('vin');
@@ -795,6 +797,14 @@ n_clause_topical ->
 	(n_clause_genitive):?
 	{% processNounClause %}
 
+n_clause_adposition ->
+	(n_clause_genitive):?
+	(sentence %a_left):?
+	%adj_left:? %n_adposition %adj_right:?
+	(%a_right sentence):?
+	(n_clause_genitive):?
+	{% processNounClause %}
+
 
 ### ADVERBIALS ###
 
@@ -809,6 +819,7 @@ adverbial -> %adv {%
 
 adverbial -> %adp n_clause_subjective {%
 	function (data) {
+		console.log(data[0]);
 		return {
 			'type': 'adverbial',
 			'clause': new AdpositionClauseTree(data[0], data[1])
@@ -816,3 +827,19 @@ adverbial -> %adp n_clause_subjective {%
 	}
 %}
 
+adverbial -> n_clause_adposition {%
+	function (data) {
+		const affixes = data[0]['clause']['noun']['definition'][0]['affixes'];
+		const affix = affixes[affixes.length - 1]['affix'];
+		const affixObject = {
+			'value': affix["na'vi"],
+			'types': [affix["type"]],
+			'definition': [affix]
+		};
+		console.log(affixObject);
+		return {
+			'type': 'adverbial',
+			'clause': new AdpositionClauseTree(affixObject, data[0])
+		};
+	}
+%}

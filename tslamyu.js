@@ -55,6 +55,7 @@ function doParse(responses, verbose = false) {
 	try {
 		parser.feed(tokens);
 	} catch (e) {
+		throw e;  // TODO
 		lexingErrors.push("Parse failed at [" + e['token']['value']['value'] +
 			"] (word " + (e['offset'] + 1) + ")");
 		return {'lexingErrors': lexingErrors};
@@ -86,7 +87,7 @@ function getGrammarTypeOf(word) {
 			case 'ri':
 				type = 'n_topical'; break;
 			default:
-				//throw new Error('unknown suffix: ' + suffix);
+				type = 'n_adposition'; break;
 				break;
 		}
 	}
@@ -117,7 +118,7 @@ function getGrammarTypeOf(word) {
 			type = 'ke';
 		}
 	}
-	if (t === 'adv') {
+	if (t === 'adv' || t === 'phr' || t === 'intj') {
 		type = 'adv';
 	}
 	if (t === 'adj') {
