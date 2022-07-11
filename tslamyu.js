@@ -55,7 +55,7 @@ function doParse(responses, verbose = false) {
 	try {
 		parser.feed(tokens);
 	} catch (e) {
-		throw e;  // TODO
+		//throw e;  // TODO
 		lexingErrors.push("Parse failed at [" + e['token']['value']['value'] +
 			"] (word " + (e['offset'] + 1) + ")");
 		return {'lexingErrors': lexingErrors};
@@ -140,10 +140,10 @@ function getGrammarTypeOf(word) {
 }
 
 function warning(msg) {
-	console.log('Warning: ' + msg);
+	//console.log('Warning: ' + msg);
 }
 
 function error(msg) {
-	console.log('\x1b[31m\x1b[1mError:\x1b[0m ' + msg);
+	//console.log('\x1b[31m\x1b[1mError:\x1b[0m ' + msg);
 }
 

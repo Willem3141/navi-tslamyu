@@ -11,7 +11,7 @@ function getDefinitionId(word, type) {
 			return i;
 		}
 	}
-	console.log('Warning: couldn\'t find type "' + type + '" for word "' + word['value'] + '"');
+	//console.log('Warning: couldn\'t find type "' + type + '" for word "' + word['value'] + '"');
 	return 0;
 }
 
@@ -429,8 +429,12 @@ class NounClauseTree extends Tree {
 
 	isPlural() {
 		let definition = this.clause['noun']['definition'][0];
-		let prefix = definition['conjugated'][0]['conjugation']['affixes'][1];
-		return prefix !== "";
+		try {
+			let prefix = definition['conjugated'][0]['conjugation']['affixes'][1];
+			return prefix !== "";
+		} catch (e) {
+			return false;
+		}
 	}
 
 	translate(nounCase) {
@@ -819,7 +823,6 @@ adverbial -> %adv {%
 
 adverbial -> %adp n_clause_subjective {%
 	function (data) {
-		console.log(data[0]);
 		return {
 			'type': 'adverbial',
 			'clause': new AdpositionClauseTree(data[0], data[1])
@@ -836,7 +839,6 @@ adverbial -> n_clause_adposition {%
 			'types': [affix["type"]],
 			'definition': [affix]
 		};
-		console.log(affixObject);
 		return {
 			'type': 'adverbial',
 			'clause': new AdpositionClauseTree(affixObject, data[0])
